@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MembershipRole {
+  ADMIN
+  MANAGER
+  CLAIMS_REPRESENTATIVE
+  REVIEWER
+  VIEWER
+}
+
+enum ClaimStatus {
+  OPEN
+  AWAITING_EVIDENCE
+  UNDER_REVIEW
+  MEDICAL_REVIEW
+  DECISION_DRAFTING
+  READY_FOR_DETERMINATION
+  CLOSED
+}
+
+model Organisation {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  memberships Membership[]
+  claims      Claim[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model User {
+  id          String       @id @default(cuid())
+  name        String
+  email       String       @unique
+  memberships Membership[]
+  ownedClaims Claim[]       @relation("ClaimOwner")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Membership {
+  id             String         @id @default(cuid())
+  organisationId String
+  userId         String
+  role           MembershipRole @default(CLAIMS_REPRESENTATIVE)
+  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([organisationId, userId])
+  @@index([userId])
+}
+
+model Claim {
+  id                     String       @id @default(cuid())
+  organisationId         String
+  ownerId                 String?
+  claimNumber             String
+  claimantName            String
+  injury                  String
+  status                  ClaimStatus @default(OPEN)
+  nextAction              String
+  determinationReadiness  Int          @default(0)
+  organisation            Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  owner                    User?        @relation("ClaimOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+
+  @@unique([organisationId, claimNumber])
+  @@index([organisationId, status])
+  @@index([ownerId])
+}
