@@ -1,0 +1,2 @@
+# Add this line to apps/web/.gitignore if local storage uses the default path:
+/storage/

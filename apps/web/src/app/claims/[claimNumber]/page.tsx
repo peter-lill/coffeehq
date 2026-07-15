@@ -3,8 +3,16 @@ import { notFound } from "next/navigation";
 
 import { ClaimOverview } from "@/components/workspace/ClaimOverview";
 import { ClaimTabs } from "@/components/workspace/ClaimTabs";
+import { ClaimTimeline } from "@/components/workspace/ClaimTimeline";
 import { DeterminationReadiness } from "@/components/workspace/DeterminationReadiness";
-import { getClaim } from "@/server/services/claim-service";
+import { DocumentsPanel } from "@/components/workspace/DocumentsPanel";
+import { getClaimEvents } from "@/server/services/claim-event-service";
+import { getClaimDocuments } from "@/server/services/document-service";
+
+import {
+  getClaim,
+  getClaims,
+} from "@/server/services/claim-service";
 
 type ClaimPageProps = {
   params: Promise<{
@@ -16,9 +24,13 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
   const { claimNumber } = await params;
   const claim = await getClaim(decodeURIComponent(claimNumber));
 
-  if (!claim) {
-    notFound();
-  }
+if (!claim) {
+  notFound();
+}
+
+const claims = await getClaims();
+const events = await getClaimEvents(claim.id);
+const documents = await getClaimDocuments(claim.id);
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -52,8 +64,20 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
           />
 
           <DeterminationReadiness
-            percentage={claim.determinationReadiness}
+            documentCount={documents.length}
+            eventCount={events.length}
           />
+        </div>
+
+        <DocumentsPanel
+  claimId={claim.id}
+  claimNumber={claim.claimNumber}
+  claimantName={claim.name}
+  documents={documents}
+  claims={claims}
+/>
+        <div className="mt-6">
+          <ClaimTimeline events={events} />
         </div>
       </div>
     </main>

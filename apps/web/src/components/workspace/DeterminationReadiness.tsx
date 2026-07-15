@@ -1,60 +1,43 @@
 type DeterminationReadinessProps = {
-  percentage: number;
+  documentCount: number;
+  eventCount: number;
 };
 
 export function DeterminationReadiness({
-  percentage,
+  documentCount,
+  eventCount,
 }: DeterminationReadinessProps) {
-  const safePercentage = Math.max(0, Math.min(100, percentage));
-
   return (
     <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm font-medium text-amber-700">
-        Determination readiness
-      </p>
-      <p className="mt-2 text-4xl font-bold">{safePercentage}%</p>
+      <p className="text-sm font-medium text-amber-700">Investigation readiness</p>
+      <p className="mt-2 text-2xl font-bold text-slate-950">Not yet calculated</p>
 
-      <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-200">
-        <div
-          className="h-full rounded-full bg-amber-400"
-          style={{ width: `${safePercentage}%` }}
-        />
-      </div>
-
-      <p className="mt-4 text-sm text-slate-600">
-        Medical causation is available. Employer evidence and natural justice
-        remain outstanding.
+      <p className="mt-4 text-sm leading-6 text-slate-600">
+        CoffeeOS will calculate readiness only after evidence requirements and procedural steps are recorded. No completion is inferred from placeholder data.
       </p>
 
-      <div className="mt-5 space-y-3 text-sm">
-        <ReadinessItem label="Application details" complete />
-        <ReadinessItem label="Medical evidence" complete />
-        <ReadinessItem label="Employer evidence" />
-        <ReadinessItem label="Natural justice response" />
-      </div>
+      <dl className="mt-6 space-y-3 text-sm">
+        <div className="flex items-center justify-between">
+          <dt className="text-slate-600">Documents</dt>
+          <dd className="font-semibold text-slate-950">{documentCount}</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt className="text-slate-600">Recorded events</dt>
+          <dd className="font-semibold text-slate-950">{eventCount}</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt className="text-slate-600">Medical evidence</dt>
+          <dd className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Unknown</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt className="text-slate-600">Employer evidence</dt>
+          <dd className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Unknown</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt className="text-slate-600">Natural justice</dt>
+          <dd className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Not recorded</dd>
+        </div>
+      </dl>
     </aside>
-  );
-}
-
-function ReadinessItem({
-  label,
-  complete = false,
-}: {
-  label: string;
-  complete?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-slate-600">{label}</span>
-      <span
-        className={`rounded-full px-2 py-1 text-xs font-semibold ${
-          complete
-            ? "bg-emerald-100 text-emerald-700"
-            : "bg-slate-100 text-slate-600"
-        }`}
-      >
-        {complete ? "Complete" : "Outstanding"}
-      </span>
-    </div>
   );
 }

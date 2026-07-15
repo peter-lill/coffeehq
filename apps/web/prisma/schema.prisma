@@ -24,6 +24,48 @@ enum ClaimStatus {
   CLOSED
 }
 
+enum ClaimEventType {
+  DOCUMENT_MOVED_OUT
+  DOCUMENT_MOVED_IN
+  CLAIM_CREATED
+  CLAIM_UPDATED
+  EMAIL_RECEIVED
+  DOCUMENT_UPLOADED
+  FILE_NOTE_CREATED
+  PHONE_CALL
+  TASK_CREATED
+  TASK_COMPLETED
+  MEDICAL_EVIDENCE_RECEIVED
+  EMPLOYER_RESPONSE_RECEIVED
+  WORKER_RESPONSE_RECEIVED
+  NATURAL_JUSTICE_ISSUED
+  DECISION_DRAFTED
+  DECISION_FINALISED
+  IMPORT_COMPLETED
+  GENERAL
+}
+
+enum DocumentSource {
+  MANUAL_UPLOAD
+  INCOMING_EMAIL
+  HISTORICAL_IMPORT
+  API
+  SYSTEM
+}
+
+enum DocumentCategory {
+  MEDICAL
+  EMPLOYMENT
+  WORKER
+  EMPLOYER
+  WITNESS
+  PAYROLL
+  COMMUNICATION
+  PHOTO
+  VIDEO
+  OTHER
+}
+
 model Organisation {
   id          String       @id @default(cuid())
   name        String
@@ -35,13 +77,14 @@ model Organisation {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  name        String
-  email       String       @unique
-  memberships Membership[]
-  ownedClaims Claim[]       @relation("ClaimOwner")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id            String       @id @default(cuid())
+  name          String
+  email         String       @unique
+  memberships   Membership[]
+  ownedClaims   Claim[]      @relation("ClaimOwner")
+  createdEvents ClaimEvent[] @relation("EventCreator")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
 model Membership {
@@ -59,21 +102,66 @@ model Membership {
 }
 
 model Claim {
-  id                     String       @id @default(cuid())
-  organisationId         String
-  ownerId                 String?
-  claimNumber             String
-  claimantName            String
-  injury                  String
-  status                  ClaimStatus @default(OPEN)
-  nextAction              String
-  determinationReadiness  Int          @default(0)
-  organisation            Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
-  owner                    User?        @relation("ClaimOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  createdAt                DateTime     @default(now())
-  updatedAt                DateTime     @updatedAt
+  id                    String       @id @default(cuid())
+  organisationId        String
+  ownerId                String?
+  claimNumber            String
+  claimantName           String
+  injury                 String
+  status                 ClaimStatus @default(OPEN)
+  nextAction             String
+  determinationReadiness Int          @default(0)
+  organisation           Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  owner                  User?        @relation("ClaimOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  events                 ClaimEvent[]
+  documents              Document[]
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
   @@unique([organisationId, claimNumber])
   @@index([organisationId, status])
   @@index([ownerId])
+}
+
+model ClaimEvent {
+
+  id          String         @id @default(cuid())
+  claimId     String
+  createdById String?
+  type        ClaimEventType @default(GENERAL)
+  title       String
+  description String?
+  occurredAt  DateTime       @default(now())
+  metadata    Json?
+  claim       Claim          @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  createdBy   User?          @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  documents   Document[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([claimId, occurredAt])
+  @@index([claimId, type])
+  @@index([createdById])
+}
+
+model Document {
+  id           String           @id @default(cuid())
+  claimId      String
+  eventId      String?
+  originalName String
+  storageKey   String           @unique
+  mimeType     String
+  sizeBytes    Int
+  sha256       String
+  source       DocumentSource   @default(MANUAL_UPLOAD)
+  category     DocumentCategory @default(OTHER)
+  claim        Claim            @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  event        ClaimEvent?      @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([claimId, sha256])
+  @@index([claimId, createdAt])
+  @@index([eventId])
+  @@index([claimId, category])
 }
