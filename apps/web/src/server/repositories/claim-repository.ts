@@ -4,19 +4,24 @@ import type { CreateClaimInput } from "@/server/claims/types";
 
 const DEVELOPMENT_ORGANISATION_SLUG = "coffeehq-development";
 
-export async function ensureDevelopmentOrganisation() {
-  return db.organisation.upsert({
-    where: { slug: DEVELOPMENT_ORGANISATION_SLUG },
-    update: {},
-    create: {
-      name: "CoffeeHQ Development",
+async function getDevelopmentOrganisation() {
+  const organisation = await db.organisation.findUnique({
+    where: {
       slug: DEVELOPMENT_ORGANISATION_SLUG,
     },
   });
+
+  if (!organisation) {
+    throw new Error(
+      "Development organisation is missing. Run the database seed before starting CoffeeHQ.",
+    );
+  }
+
+  return organisation;
 }
 
 export async function listClaims() {
-  const organisation = await ensureDevelopmentOrganisation();
+  const organisation = await getDevelopmentOrganisation();
 
   return db.claim.findMany({
     where: { organisationId: organisation.id },
@@ -25,7 +30,7 @@ export async function listClaims() {
 }
 
 export async function findClaimByNumber(claimNumber: string) {
-  const organisation = await ensureDevelopmentOrganisation();
+  const organisation = await getDevelopmentOrganisation();
 
   return db.claim.findUnique({
     where: {
@@ -38,7 +43,7 @@ export async function findClaimByNumber(claimNumber: string) {
 }
 
 export async function createClaim(input: CreateClaimInput) {
-  const organisation = await ensureDevelopmentOrganisation();
+  const organisation = await getDevelopmentOrganisation();
 
   return db.claim.create({
     data: {
@@ -53,7 +58,7 @@ export async function createClaim(input: CreateClaimInput) {
 }
 
 export async function getClaimStatusCounts() {
-  const organisation = await ensureDevelopmentOrganisation();
+  const organisation = await getDevelopmentOrganisation();
 
   return db.claim.groupBy({
     by: ["status"],
