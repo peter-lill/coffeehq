@@ -4,7 +4,7 @@ const items = [
   { label: "Dashboard", href: "/" },
   { label: "Claims", href: "/claims" },
   { label: "Tasks", href: "#" },
-  { label: "Evidence", href: "#" },
+  { label: "Evidence", href: "/evidence" },
   { label: "Reports", href: "#" },
 ] as const;
 

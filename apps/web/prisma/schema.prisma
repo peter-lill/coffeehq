@@ -42,6 +42,8 @@ enum ClaimEventType {
   DECISION_DRAFTED
   DECISION_FINALISED
   IMPORT_COMPLETED
+  EVIDENCE_REQUIREMENT_CREATED
+  EVIDENCE_REQUIREMENT_UPDATED
   GENERAL
 }
 
@@ -86,6 +88,13 @@ enum CommunicationStatus {
   NEEDS_REVIEW
   FAILED
   QUARANTINED
+}
+
+enum EvidenceRequirementStatus {
+  OUTSTANDING
+  REQUESTED
+  RECEIVED
+  NOT_REQUIRED
 }
 
 enum ClaimMatchMethod {
@@ -147,6 +156,7 @@ model Claim {
   events                 ClaimEvent[]
   documents              Document[]
   communications         Communication[]
+  evidenceRequirements   EvidenceRequirement[]
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
 
@@ -233,5 +243,26 @@ model Document {
   @@index([claimId, createdAt])
   @@index([eventId])
   @@index([communicationId])
+  @@index([claimId, category])
+}
+
+
+model EvidenceRequirement {
+  id              String                    @id @default(cuid())
+  claimId         String
+  category        DocumentCategory
+  title           String
+  description     String?
+  requestedFrom   String?
+  dueDate         DateTime?
+  status          EvidenceRequirementStatus @default(OUTSTANDING)
+  completedAt     DateTime?
+  createdByName   String?
+  updatedByName   String?
+  claim           Claim                     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([claimId, status])
   @@index([claimId, category])
 }
