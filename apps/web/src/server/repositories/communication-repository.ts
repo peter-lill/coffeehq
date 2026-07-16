@@ -1,6 +1,13 @@
-import type { Prisma } from "@prisma/client";
+import type { CommunicationStatus, Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
+
+export class CommunicationAlreadyFiledError extends Error {
+  constructor() {
+    super("This email has already been filed or is no longer awaiting review.");
+    this.name = "CommunicationAlreadyFiledError";
+  }
+}
 
 export async function findCommunicationByMessageId(
   internetMessageId: string,
@@ -10,9 +17,92 @@ export async function findCommunicationByMessageId(
   });
 }
 
-export async function listInboxRecords(organisationId: string) {
+export async function findCommunicationForManualFiling(
+  communicationId: string,
+) {
+  return db.communication.findUnique({
+    where: { id: communicationId },
+    select: {
+      id: true,
+      organisationId: true,
+      claimId: true,
+      status: true,
+      sender: true,
+      subject: true,
+      rawStorageKey: true,
+      receivedAt: true,
+    },
+  });
+}
+
+export async function findClaimForManualFiling(input: {
+  claimId: string;
+  organisationId: string;
+}) {
+  return db.claim.findFirst({
+    where: {
+      id: input.claimId,
+      organisationId: input.organisationId,
+    },
+    select: {
+      id: true,
+      claimNumber: true,
+      claimantName: true,
+    },
+  });
+}
+
+export async function listInboxRecords(input: {
+  organisationId: string;
+  status?: CommunicationStatus;
+  search?: string;
+}) {
+  const search = input.search?.trim();
+  const where: Prisma.CommunicationWhereInput = {
+    organisationId: input.organisationId,
+    ...(input.status ? { status: input.status } : {}),
+    ...(search
+      ? {
+          OR: [
+            {
+              sender: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              subject: {
+                contains: search,
+                mode: "insensitive",
+              },
+            },
+            {
+              claim: {
+                is: {
+                  claimNumber: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+            {
+              claim: {
+                is: {
+                  claimantName: {
+                    contains: search,
+                    mode: "insensitive",
+                  },
+                },
+              },
+            },
+          ],
+        }
+      : {}),
+  };
+
   return db.communication.findMany({
-    where: { organisationId },
+    where,
     include: {
       claim: {
         select: {
@@ -25,7 +115,45 @@ export async function listInboxRecords(organisationId: string) {
       },
     },
     orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
-    take: 100,
+    take: 200,
+  });
+}
+
+export async function countInboxRecords(organisationId: string) {
+  return db.communication.groupBy({
+    by: ["status"],
+    where: { organisationId },
+    _count: { _all: true },
+  });
+}
+
+export async function findCommunicationDetail(input: {
+  communicationId: string;
+  organisationId: string;
+}) {
+  return db.communication.findFirst({
+    where: {
+      id: input.communicationId,
+      organisationId: input.organisationId,
+    },
+    include: {
+      claim: {
+        select: {
+          claimNumber: true,
+          claimantName: true,
+        },
+      },
+      documents: {
+        select: {
+          id: true,
+          originalName: true,
+          mimeType: true,
+          sizeBytes: true,
+          category: true,
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
 }
 
@@ -101,4 +229,164 @@ export async function linkDocumentToCommunication(input: {
     where: { id: input.documentId },
     data: { communicationId: input.communicationId },
   });
+}
+
+export type ManualFilingAttachmentRecord = {
+  originalName: string;
+  storageKey: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  category:
+    | "MEDICAL"
+    | "EMPLOYMENT"
+    | "WORKER"
+    | "EMPLOYER"
+    | "WITNESS"
+    | "PAYROLL"
+    | "COMMUNICATION"
+    | "PHOTO"
+    | "VIDEO"
+    | "OTHER";
+};
+
+export async function fileCommunicationToClaimRecord(input: {
+  communicationId: string;
+  organisationId: string;
+  claimId: string;
+  filedBy: string;
+  reason: string;
+  attachments: ManualFilingAttachmentRecord[];
+  skippedAttachmentCount: number;
+}) {
+  return db.$transaction(
+    async (transaction) => {
+      const communication = await transaction.communication.findUnique({
+        where: { id: input.communicationId },
+        select: {
+          id: true,
+          organisationId: true,
+          claimId: true,
+          status: true,
+          sender: true,
+          subject: true,
+          receivedAt: true,
+        },
+      });
+
+      if (
+        !communication ||
+        communication.organisationId !== input.organisationId ||
+        communication.status !== "NEEDS_REVIEW" ||
+        communication.claimId
+      ) {
+        throw new CommunicationAlreadyFiledError();
+      }
+
+      const claim = await transaction.claim.findFirst({
+        where: {
+          id: input.claimId,
+          organisationId: input.organisationId,
+        },
+        select: {
+          id: true,
+          claimNumber: true,
+          claimantName: true,
+        },
+      });
+
+      if (!claim) {
+        throw new Error("The selected claim could not be found.");
+      }
+
+      const emailEvent = await transaction.claimEvent.create({
+        data: {
+          claimId: claim.id,
+          type: "EMAIL_RECEIVED",
+          title: "Incoming email manually filed",
+          description: communication.subject || "No subject",
+          occurredAt: communication.receivedAt,
+          metadata: {
+            sender: communication.sender,
+            subject: communication.subject,
+            matchMethod: "MANUAL",
+            matchConfidence: 100,
+            filedBy: input.filedBy,
+            filingReason: input.reason,
+            attachmentCount: input.attachments.length,
+            skippedAttachmentCount: input.skippedAttachmentCount,
+          },
+        },
+      });
+
+      for (const attachment of input.attachments) {
+        const documentEvent = await transaction.claimEvent.create({
+          data: {
+            claimId: claim.id,
+            type: "DOCUMENT_UPLOADED",
+            title: "Email attachment filed",
+            description: attachment.originalName,
+            occurredAt: communication.receivedAt,
+            metadata: {
+              originalName: attachment.originalName,
+              mimeType: attachment.mimeType,
+              sizeBytes: attachment.sizeBytes,
+              source: "INCOMING_EMAIL",
+              category: attachment.category,
+              communicationId: communication.id,
+              manuallyFiledBy: input.filedBy,
+            },
+          },
+        });
+
+        await transaction.document.create({
+          data: {
+            claimId: claim.id,
+            eventId: documentEvent.id,
+            communicationId: communication.id,
+            originalName: attachment.originalName,
+            storageKey: attachment.storageKey,
+            mimeType: attachment.mimeType,
+            sizeBytes: attachment.sizeBytes,
+            sha256: attachment.sha256,
+            source: "INCOMING_EMAIL",
+            category: attachment.category,
+          },
+        });
+      }
+
+      const updated = await transaction.communication.updateMany({
+        where: {
+          id: communication.id,
+          organisationId: input.organisationId,
+          claimId: null,
+          status: "NEEDS_REVIEW",
+        },
+        data: {
+          claimId: claim.id,
+          eventId: emailEvent.id,
+          status: "FILED",
+          matchMethod: "MANUAL",
+          matchConfidence: 100,
+          manuallyFiledAt: new Date(),
+          manuallyFiledBy: input.filedBy,
+          manualFilingReason: input.reason,
+        },
+      });
+
+      if (updated.count !== 1) {
+        throw new CommunicationAlreadyFiledError();
+      }
+
+      return {
+        communicationId: communication.id,
+        claim,
+        attachmentCount: input.attachments.length,
+        skippedAttachmentCount: input.skippedAttachmentCount,
+      };
+    },
+    {
+      isolationLevel: "Serializable",
+    },
+  );
 }

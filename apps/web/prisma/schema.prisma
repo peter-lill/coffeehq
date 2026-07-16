@@ -195,6 +195,9 @@ model Communication {
   internetMessageId String?                 @unique
   threadId          String?
   rawStorageKey     String?
+  manuallyFiledAt   DateTime?
+  manuallyFiledBy   String?
+  manualFilingReason String?
   receivedAt        DateTime
   organisation      Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   claim             Claim?                  @relation(fields: [claimId], references: [id], onDelete: SetNull)
