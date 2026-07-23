@@ -427,3 +427,35 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+###############################################################################
+# CoffeeHQ local backups, releases and installers
+###############################################################################
+
+.coffeehq-backups/
+.coffeehq-release-*/
+.coffeehq-update/
+coffeeos-v*-payload/
+
+coffeehq-before-update.sql
+apps/web/coffeehq-before-update.sql
+
+coffeehq-source-lite.zip
+
+install-coffeehq-complete-update.sh
+install-coffeehq-update.sh
+install-coffeeos-*.sh
+
+prepare-coffeehq-source.sh
+restore-coffeehq-source.sh
+restore-coffeeos-source.sh
+
+MANIFEST.json
+README-FIRST.md
+RELEASE-NOTES.md
+
+###############################################################################
+# Imported source and local payloads
+###############################################################################
+
+imports/
