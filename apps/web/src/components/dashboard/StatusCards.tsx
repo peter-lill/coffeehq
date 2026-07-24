@@ -1,11 +1,13 @@
-const cards = [
-  { label: "Open claims", value: "24" },
-  { label: "Awaiting evidence", value: "7" },
-  { label: "Decisions due", value: "4" },
-  { label: "Ready for determination", value: "3" },
-];
+import type { DashboardSummary } from "@/server/claims/types";
 
-export function StatusCards() {
+export function StatusCards({ summary }: { summary: DashboardSummary }) {
+  const cards = [
+    { label: "Open claims", value: summary.openClaims },
+    { label: "Awaiting evidence", value: summary.awaitingEvidence },
+    { label: "Decisions due", value: summary.decisionsDue },
+    { label: "Ready for determination", value: summary.readyForDetermination },
+  ];
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => (
