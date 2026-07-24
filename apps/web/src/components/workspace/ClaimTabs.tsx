@@ -9,7 +9,8 @@ export function ClaimTabs() {
   const claimBase = claimMatch ? `/claims/${claimMatch[1]}` : "/claims";
   const investigationActive = pathname.endsWith("/investigation");
   const evidenceActive = pathname.endsWith("/evidence");
-  const overviewActive = !investigationActive && !evidenceActive;
+  const decisionActive = pathname.endsWith("/decision");
+  const overviewActive = !investigationActive && !evidenceActive && !decisionActive;
 
   const tabs = [
     { label: "Overview", href: claimBase, active: overviewActive },
@@ -18,7 +19,7 @@ export function ClaimTabs() {
     { label: "Evidence", href: `${claimBase}/evidence`, active: evidenceActive },
     { label: "Medical", href: `${claimBase}/evidence#medical-evidence`, active: false },
     { label: "Tasks", href: "#", active: false },
-    { label: "Decision", href: "#", active: false },
+    { label: "Decision", href: `${claimBase}/decision`, active: decisionActive },
   ];
 
   return (
