@@ -10,11 +10,11 @@ export default function BeanPage() {
           </p>
 
           <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-            Universal Document Intake
+            Quick File Note
           </h1>
 
           <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-700 sm:text-base">
-            Paste a complete transcript or import a TXT, DOCX, PDF or RTF document, review the extracted text, and generate a CPIS-ready file note.
+            Paste a complete transcript or add a TXT, DOCX, PDF or RTF document, then brew a CPIS-ready file note through the Magical Beans.
           </p>
         </header>
 
