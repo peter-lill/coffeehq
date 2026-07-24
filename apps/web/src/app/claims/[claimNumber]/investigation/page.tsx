@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ConflictWorkspacePanel } from "@/components/investigation/ConflictWorkspacePanel";
 import { EvidenceRequirementsPanel } from "@/components/investigation/EvidenceRequirementsPanel";
 import { InvestigationDashboard } from "@/components/investigation/InvestigationDashboard";
+import { MedicalWorkspacePanel } from "@/components/investigation/MedicalWorkspacePanel";
 import { ProceduralFairnessPanel } from "@/components/investigation/ProceduralFairnessPanel";
 import { ClaimTabs } from "@/components/workspace/ClaimTabs";
 import { buildExecutiveClaimSummary } from "@/server/domain/claim";
@@ -12,6 +13,7 @@ import { getClaimDocuments } from "@/server/services/document-service";
 import { getClaimEvidenceRequirements } from "@/server/services/evidence-requirement-service";
 import { getClaim } from "@/server/services/claim-service";
 import { listConflictRecords } from "@/server/services/conflict-workspace-service";
+import { listMedicalWorkspaceRecords } from "@/server/services/medical-workspace-service";
 import { listProceduralFairnessWorkflows } from "@/server/services/procedural-fairness-service";
 
 export const dynamic = "force-dynamic";
@@ -26,12 +28,13 @@ export default async function InvestigationPage({ params }: InvestigationPagePro
 
   if (!claim) notFound();
 
-  const [events, documents, requirements, proceduralFairnessWorkflows, conflicts] = await Promise.all([
+  const [events, documents, requirements, proceduralFairnessWorkflows, conflicts, medicalRecords] = await Promise.all([
     getClaimEvents(claim.id),
     getClaimDocuments(claim.id),
     getClaimEvidenceRequirements(claim.id),
     listProceduralFairnessWorkflows(claim.id),
     listConflictRecords(claim.id),
+    listMedicalWorkspaceRecords(claim.id),
   ]);
 
   const summary = buildExecutiveClaimSummary({ claim, documents, events });
@@ -62,6 +65,7 @@ export default async function InvestigationPage({ params }: InvestigationPagePro
         <InvestigationDashboard summary={summary} />
         <EvidenceRequirementsPanel claimNumber={claim.claimNumber} requirements={requirements} />
         <ConflictWorkspacePanel claimNumber={claim.claimNumber} conflicts={conflicts} />
+        <MedicalWorkspacePanel claimNumber={claim.claimNumber} records={medicalRecords} />
         <ProceduralFairnessPanel claimNumber={claim.claimNumber} workflows={proceduralFairnessWorkflows} />
       </div>
     </main>
