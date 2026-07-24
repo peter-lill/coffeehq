@@ -9,7 +9,7 @@ const items = [
 ] as const;
 
 type SidebarProps = {
-  activeItem: (typeof items)[number]["label"];
+  activeItem: string;
 };
 
 export function Sidebar({ activeItem }: SidebarProps) {

@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     "192.168.0.111",
     "192.168.0.116",
   ],
-
+  serverExternalPackages: ["unzipper"],
   experimental: {
     serverActions: {
       bodySizeLimit: "51mb",

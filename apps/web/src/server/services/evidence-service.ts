@@ -8,6 +8,7 @@ import {
   evidenceCategoryOrder,
   type EvidenceDashboardItem,
   type EvidenceRegister,
+  type EvidenceRequirementItem,
 } from "@/server/evidence/types";
 import {
   createEvidenceRequirementRecord,
@@ -28,14 +29,33 @@ const claimStatusLabels: Record<string, string> = {
   CLOSED: "Closed",
 };
 
+function toEvidenceRequirementItem(
+  requirement: Awaited<ReturnType<typeof listEvidenceRequirementRecords>>[number],
+  now: Date,
+): EvidenceRequirementItem {
+  const remainsOpen =
+    requirement.status === "OUTSTANDING" || requirement.status === "REQUESTED";
+
+  return {
+    ...requirement,
+    isOverdue: Boolean(
+      remainsOpen && requirement.dueDate && requirement.dueDate.getTime() < now.getTime(),
+    ),
+  };
+}
+
 export async function getEvidenceRegister(
   claimId: string,
 ): Promise<EvidenceRegister> {
-  const [documents, communicationRecords, requirements] = await Promise.all([
+  const [documents, communicationRecords, requirementRecords] = await Promise.all([
     listEvidenceDocumentRecords(claimId),
     listEvidenceCommunicationRecords(claimId),
     listEvidenceRequirementRecords(claimId),
   ]);
+
+  const requirements = requirementRecords.map((requirement) =>
+    toEvidenceRequirementItem(requirement, new Date()),
+  );
 
   const communications = communicationRecords.map((record) => ({
     id: record.id,

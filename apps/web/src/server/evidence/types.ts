@@ -2,6 +2,7 @@ import type {
   CommunicationStatus,
   DocumentCategory,
   DocumentSource,
+  EvidenceRequestedFromType,
   EvidenceRequirementStatus,
 } from "@prisma/client";
 
@@ -38,6 +39,15 @@ export const evidenceStatusLabels: Record<EvidenceRequirementStatus, string> = {
   NOT_REQUIRED: "Not required",
 };
 
+export const evidenceRequestedFromLabels: Record<EvidenceRequestedFromType, string> = {
+  WORKER: "Worker",
+  EMPLOYER: "Employer",
+  DOCTOR: "Doctor",
+  WITNESS: "Witness",
+  INTERNAL: "Internal",
+  OTHER: "Other",
+};
+
 export type EvidenceDocumentItem = {
   id: string;
   originalName: string;
@@ -69,7 +79,13 @@ export type EvidenceRequirementItem = {
   title: string;
   description: string | null;
   requestedFrom: string | null;
+  requestedFromType: EvidenceRequestedFromType | null;
+  assignedOwner: string | null;
+  requestedAt: Date | null;
   dueDate: Date | null;
+  followUpDate: Date | null;
+  blockingDetermination: boolean;
+  isOverdue: boolean;
   status: EvidenceRequirementStatus;
   completedAt: Date | null;
   createdByName: string | null;

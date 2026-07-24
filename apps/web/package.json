@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test",
+    "test": "vitest run",
     "db:verify-history": "node scripts/coffeeos-verify-migration-history.mjs",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
@@ -27,7 +27,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "imapflow": "^1.0.191",
-    "mailparser": "^3.7.4"
+    "mailparser": "^3.7.4",
+    "unzipper": "^0.12.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -41,6 +42,8 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "@types/mailparser": "^3.4.6",
-    "tsx": "^4.20.6"
+    "@types/unzipper": "^0.10.11",
+    "tsx": "^4.20.6",
+    "vitest": "^3.2.4"
   }
 }

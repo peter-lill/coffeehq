@@ -1,4 +1,6 @@
-import type { Claim } from "@prisma/client";
+import type { Claim, ClaimDecisionOutcome } from "@prisma/client";
+
+import { db } from "@/lib/db";
 import type { ClaimListItem, CreateClaimInput } from "@/server/claims/types";
 import {
   createClaim as createClaimRecord,
@@ -41,4 +43,38 @@ export async function getClaim(claimNumber: string): Promise<ClaimListItem | nul
 export async function addClaim(input: CreateClaimInput): Promise<ClaimListItem> {
   const claim = await createClaimRecord(input);
   return toClaimListItem(claim);
+}
+
+export async function closeClaim(input: {
+  claimNumber: string;
+  outcome: ClaimDecisionOutcome;
+}) {
+  const claim = await findClaimByNumber(input.claimNumber);
+  if (!claim) throw new Error("Claim not found.");
+
+  return db.claim.update({
+    where: { id: claim.id },
+    data: {
+      status: "CLOSED",
+      decisionOutcome: input.outcome,
+      closedAt: new Date(),
+      nextAction: "Claim closed",
+    },
+  });
+}
+
+export async function reopenClaim(claimNumber: string) {
+  const claim = await findClaimByNumber(claimNumber);
+  if (!claim) throw new Error("Claim not found.");
+
+  return db.claim.update({
+    where: { id: claim.id },
+    data: {
+      status: "OPEN",
+      decisionOutcome: null,
+      closedAt: null,
+      closedByName: null,
+      nextAction: "Review reopened claim",
+    },
+  });
 }
