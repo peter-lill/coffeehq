@@ -3,9 +3,11 @@ import Link from "next/link";
 const items = [
   { label: "Dashboard", href: "/" },
   { label: "Claims", href: "/claims" },
-  { label: "Tasks", href: "#" },
+  { label: "Tasks", href: "/tasks" },
   { label: "Evidence", href: "/evidence" },
-  { label: "Reports", href: "#" },
+  { label: "Reports", href: "/reports" },
+  { label: "The Roastery", href: "/roastery" },
+  { label: "Deleted Items", href: "/deleted-items" },
 ] as const;
 
 type SidebarProps = {
