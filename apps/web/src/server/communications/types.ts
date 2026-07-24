@@ -54,19 +54,17 @@ export type CommunicationDetail = InboxCommunication & {
   attachments: CommunicationAttachment[];
 };
 
+export type EvidenceRequirementOption = {
+  id: string;
+  title: string;
+};
+
+export type EvidenceClassificationActionResult =
+  | { status: "idle"; message: "" }
+  | { status: "success"; message: string }
+  | { status: "error"; message: string };
+
 export type ManualFileCommunicationResult =
-  | {
-      status: "idle";
-      message: "";
-      claimNumber: null;
-    }
-  | {
-      status: "success";
-      message: string;
-      claimNumber: string;
-    }
-  | {
-      status: "error";
-      message: string;
-      claimNumber: null;
-    };
+  | { status: "idle"; message: ""; claimNumber: null }
+  | { status: "success"; message: string; claimNumber: string }
+  | { status: "error"; message: string; claimNumber: null };
