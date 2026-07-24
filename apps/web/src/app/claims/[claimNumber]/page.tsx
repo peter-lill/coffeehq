@@ -1,13 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BeanClaimAssistant } from "@/components/bean/BeanClaimAssistant";
 import { ClaimOverview } from "@/components/workspace/ClaimOverview";
 import { ClaimTabs } from "@/components/workspace/ClaimTabs";
 import { ClaimTimeline } from "@/components/workspace/ClaimTimeline";
 import { DocumentsPanel } from "@/components/workspace/DocumentsPanel";
+import { buildBeanClaimBrief } from "@/server/bean/claim-brief";
 import { getClaimEvents } from "@/server/services/claim-event-service";
 import { getClaimDocuments } from "@/server/services/document-service";
 import { getClaim, getClaims } from "@/server/services/claim-service";
+
+export const dynamic = "force-dynamic";
 
 type ClaimPageProps = {
   params: Promise<{
@@ -55,6 +59,11 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
   );
 
   const latestEvent = events[0];
+  const beanBrief = buildBeanClaimBrief({
+    claim,
+    documents,
+    events,
+  });
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -242,21 +251,7 @@ export default async function ClaimPage({ params }: ClaimPageProps) {
               )}
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-950 p-6 text-white shadow-sm">
-              <p className="text-sm font-semibold text-amber-400">Bean</p>
-              <h2 className="mt-1 text-xl font-bold">Claim assistant</h2>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Claim analysis and document generation will appear here in the
-                next workspace increment.
-              </p>
-              <button
-                type="button"
-                disabled
-                className="mt-5 w-full cursor-not-allowed rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-slate-500"
-              >
-                Bean coming next
-              </button>
-            </section>
+            <BeanClaimAssistant brief={beanBrief} />
           </aside>
         </div>
       </div>
