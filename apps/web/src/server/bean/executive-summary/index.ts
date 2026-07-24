@@ -1,5 +1,5 @@
-export { buildExecutiveClaimSummary } from "./executive-summary-service";
-export type {
-  ExecutiveClaimSummary,
-  ExecutiveClaimSummaryInput,
-} from "./executive-summary.types";
+export {
+  buildExecutiveClaimSummary,
+  type ExecutiveClaimSummary,
+  type ExecutiveClaimSummaryInput,
+} from "@/server/domain/claim/executive-summary";
