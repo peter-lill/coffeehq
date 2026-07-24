@@ -43,8 +43,10 @@ export async function saveLegislativeAssessment(formData: FormData) {
   const linkedFactorKeys = formData.getAll("linkedFactorKeys").map(String);
 
   if (!claimNumber || !elementKey) throw new Error("Claim number and legislative element are required.");
-  if (status !== "NOT_ASSESSED" && !reasons.trim()) {
-    throw new Error("Reasons are required when recording a legislative assessment.");
+
+  const requiresReasons = status === "SATISFIED" || status === "NOT_SATISFIED";
+  if (requiresReasons && !reasons.trim()) {
+    throw new Error("Reasons are required when recording a satisfied or not satisfied assessment.");
   }
 
   await recordLegislativeAssessment({
