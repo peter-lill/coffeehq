@@ -6,120 +6,260 @@ datasource db {
   provider = "postgresql"
 }
 
-enum MembershipRole { ADMIN MANAGER CLAIMS_REPRESENTATIVE REVIEWER VIEWER }
-enum ClaimStatus { OPEN AWAITING_EVIDENCE UNDER_REVIEW MEDICAL_REVIEW DECISION_DRAFTING READY_FOR_DETERMINATION CLOSED }
-enum ClaimDecisionOutcome { ACCEPTED REJECTED }
-enum ClaimEventType { CLAIM_CREATED CLAIM_UPDATED EMAIL_RECEIVED DOCUMENT_UPLOADED DOCUMENT_MOVED_OUT DOCUMENT_MOVED_IN FILE_NOTE_CREATED PHONE_CALL TASK_CREATED TASK_COMPLETED MEDICAL_EVIDENCE_RECEIVED EMPLOYER_RESPONSE_RECEIVED WORKER_RESPONSE_RECEIVED NATURAL_JUSTICE_ISSUED DECISION_DRAFTED DECISION_FINALISED IMPORT_COMPLETED EVIDENCE_REQUIREMENT_CREATED EVIDENCE_REQUIREMENT_UPDATED EVIDENCE_REQUEST_ISSUED EVIDENCE_FOLLOW_UP_RECORDED EVIDENCE_RECEIVED_LINKED GENERAL }
-enum DocumentSource { MANUAL_UPLOAD INCOMING_EMAIL HISTORICAL_IMPORT API SYSTEM }
-enum DocumentCategory { MEDICAL EMPLOYMENT WORKER EMPLOYER WITNESS PAYROLL COMMUNICATION PHOTO VIDEO OTHER }
-enum CommunicationDirection { INCOMING OUTGOING }
-enum CommunicationChannel { EMAIL PHONE SMS PORTAL INTERNAL_NOTE }
-enum CommunicationStatus { RECEIVED PROCESSING FILED NEEDS_REVIEW FAILED QUARANTINED }
-enum EvidenceRequirementStatus { OUTSTANDING REQUESTED RECEIVED NOT_REQUIRED }
-enum EvidenceRequestedFromType { WORKER EMPLOYER DOCTOR WITNESS INTERNAL OTHER }
-enum ClaimMatchMethod { CLAIM_NUMBER_SUBJECT CLAIM_NUMBER_BODY THREAD MANUAL UNMATCHED }
-enum ClaimAccessLevel { EDIT VIEW }
-enum ClaimAccessReason { SHARED LEAVE_DELEGATION MANAGER_SUPPORT TRANSFER_HANDOVER OTHER }
-enum RoasteryBatchStatus { UPLOADED PARSING CLASSIFIED AWAITING_REVIEW APPROVED IMPORTED REJECTED FAILED ROLLED_BACK }
-enum RoasteryConversationStatus { STAGED MATCH_SUGGESTED READY EXCLUDED IMPORTED FAILED ROLLED_BACK }
-enum RoasteryMatchMethod { CLAIM_NUMBER CLAIMANT_NAME MANUAL NONE }
+enum MembershipRole {
+  ADMIN
+  MANAGER
+  CLAIMS_REPRESENTATIVE
+  REVIEWER
+  VIEWER
+}
+
+enum ClaimStatus {
+  OPEN
+  AWAITING_EVIDENCE
+  UNDER_REVIEW
+  MEDICAL_REVIEW
+  DECISION_DRAFTING
+  READY_FOR_DETERMINATION
+  CLOSED
+}
+
+enum ClaimDecisionOutcome {
+  ACCEPTED
+  REJECTED
+}
+
+enum ClaimEventType {
+  CLAIM_CREATED
+  CLAIM_UPDATED
+  EMAIL_RECEIVED
+  DOCUMENT_UPLOADED
+  DOCUMENT_MOVED_OUT
+  DOCUMENT_MOVED_IN
+  FILE_NOTE_CREATED
+  PHONE_CALL
+  TASK_CREATED
+  TASK_COMPLETED
+  MEDICAL_EVIDENCE_RECEIVED
+  EMPLOYER_RESPONSE_RECEIVED
+  WORKER_RESPONSE_RECEIVED
+  NATURAL_JUSTICE_ISSUED
+  DECISION_DRAFTED
+  DECISION_FINALISED
+  IMPORT_COMPLETED
+  EVIDENCE_REQUIREMENT_CREATED
+  EVIDENCE_REQUIREMENT_UPDATED
+  EVIDENCE_REQUEST_ISSUED
+  EVIDENCE_FOLLOW_UP_RECORDED
+  EVIDENCE_RECEIVED_LINKED
+  GENERAL
+}
+
+enum DocumentSource {
+  MANUAL_UPLOAD
+  INCOMING_EMAIL
+  HISTORICAL_IMPORT
+  API
+  SYSTEM
+}
+
+enum DocumentCategory {
+  MEDICAL
+  EMPLOYMENT
+  WORKER
+  EMPLOYER
+  WITNESS
+  PAYROLL
+  COMMUNICATION
+  PHOTO
+  VIDEO
+  OTHER
+}
+
+enum CommunicationDirection {
+  INCOMING
+  OUTGOING
+}
+
+enum CommunicationChannel {
+  EMAIL
+  PHONE
+  SMS
+  PORTAL
+  INTERNAL_NOTE
+}
+
+enum CommunicationStatus {
+  RECEIVED
+  PROCESSING
+  FILED
+  NEEDS_REVIEW
+  FAILED
+  QUARANTINED
+}
+
+enum EvidenceRequirementStatus {
+  OUTSTANDING
+  REQUESTED
+  RECEIVED
+  NOT_REQUIRED
+}
+
+enum EvidenceRequestedFromType {
+  WORKER
+  EMPLOYER
+  DOCTOR
+  WITNESS
+  INTERNAL
+  OTHER
+}
+
+enum ClaimMatchMethod {
+  CLAIM_NUMBER_SUBJECT
+  CLAIM_NUMBER_BODY
+  THREAD
+  MANUAL
+  UNMATCHED
+}
+
+enum ClaimAccessLevel {
+  EDIT
+  VIEW
+}
+
+enum ClaimAccessReason {
+  SHARED
+  LEAVE_DELEGATION
+  MANAGER_SUPPORT
+  TRANSFER_HANDOVER
+  OTHER
+}
+
+enum RoasteryBatchStatus {
+  UPLOADED
+  PARSING
+  CLASSIFIED
+  AWAITING_REVIEW
+  APPROVED
+  IMPORTED
+  REJECTED
+  FAILED
+  ROLLED_BACK
+}
+
+enum RoasteryConversationStatus {
+  STAGED
+  MATCH_SUGGESTED
+  READY
+  EXCLUDED
+  IMPORTED
+  FAILED
+  ROLLED_BACK
+}
+
+enum RoasteryMatchMethod {
+  CLAIM_NUMBER
+  CLAIMANT_NAME
+  MANUAL
+  NONE
+}
 
 model Organisation {
-  id String @id @default(cuid())
-  name String
-  slug String @unique
-  memberships Membership[]
-  claims Claim[]
-  communications Communication[]
-  roasteryImportBatches RoasteryImportBatch[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                     String                @id @default(cuid())
+  name                   String
+  slug                   String                @unique
+  memberships            Membership[]
+  claims                 Claim[]
+  communications         Communication[]
+  roasteryImportBatches  RoasteryImportBatch[]
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
 }
 
 model User {
-  id String @id @default(cuid())
-  name String
-  email String @unique
-  passwordHash String?
-  isActive Boolean @default(true)
-  mustChangePassword Boolean @default(false)
-  lastLoginAt DateTime?
-  failedLoginAttempts Int @default(0)
-  lockedUntil DateTime?
-  memberships Membership[]
-  ownedClaims Claim[] @relation("ClaimOwner")
-  createdEvents ClaimEvent[] @relation("EventCreator")
-  authSessions AuthSession[]
-  claimAccessGrants ClaimAccess[] @relation("ClaimAccessUser")
-  grantedClaimAccess ClaimAccess[] @relation("ClaimAccessGrantor")
-  claimAccessAudits ClaimAccessAudit[]
-  uploadedRoasteryBatches RoasteryImportBatch[] @relation("RoasteryUploadedBy")
-  approvedRoasteryBatches RoasteryImportBatch[] @relation("RoasteryApprovedBy")
-  proposedRoasteryBatches RoasteryImportBatch[] @relation("RoasteryProposedOwner")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                         String                 @id @default(cuid())
+  name                       String
+  email                      String                 @unique
+  passwordHash               String?
+  isActive                   Boolean                @default(true)
+  mustChangePassword         Boolean                @default(false)
+  lastLoginAt                DateTime?
+  failedLoginAttempts        Int                    @default(0)
+  lockedUntil                DateTime?
+  memberships                Membership[]
+  ownedClaims                Claim[]                @relation("ClaimOwner")
+  createdEvents              ClaimEvent[]           @relation("EventCreator")
+  authSessions               AuthSession[]
+  claimAccessGrants          ClaimAccess[]          @relation("ClaimAccessUser")
+  grantedClaimAccess         ClaimAccess[]          @relation("ClaimAccessGrantor")
+  claimAccessAudits          ClaimAccessAudit[]
+  uploadedRoasteryBatches    RoasteryImportBatch[]  @relation("RoasteryUploadedBy")
+  approvedRoasteryBatches    RoasteryImportBatch[]  @relation("RoasteryApprovedBy")
+  proposedRoasteryBatches    RoasteryImportBatch[]  @relation("RoasteryProposedOwner")
+  createdAt                  DateTime               @default(now())
+  updatedAt                  DateTime               @updatedAt
 }
 
 model AuthSession {
-  id String @id @default(cuid())
-  userId String
-  tokenHash String @unique
-  expiresAt DateTime
-  lastSeenAt DateTime @default(now())
-  userAgent String?
-  ipAddress String?
-  revokedAt DateTime?
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  userAgent  String?
+  ipAddress  String?
+  revokedAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   @@index([userId, revokedAt, expiresAt])
   @@index([expiresAt])
 }
 
 model Membership {
-  id String @id @default(cuid())
+  id             String         @id @default(cuid())
   organisationId String
-  userId String
-  role MembershipRole @default(CLAIMS_REPRESENTATIVE)
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  userId         String
+  role           MembershipRole @default(CLAIMS_REPRESENTATIVE)
+  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   @@unique([organisationId, userId])
   @@index([userId])
 }
 
 model Claim {
-  id String @id @default(cuid())
-  organisationId String
-  ownerId String?
-  claimNumber String
-  claimantName String
-  employerName String?
-  claimType String?
-  injury String
-  applicationDate DateTime?
-  status ClaimStatus @default(OPEN)
-  decisionOutcome ClaimDecisionOutcome?
-  nextAction String
-  determinationReadiness Int @default(0)
-  closedAt DateTime?
-  closedByName String?
-  deletedAt DateTime?
-  deletedByName String?
-  deletionReason String?
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Restrict)
-  owner User? @relation("ClaimOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  events ClaimEvent[]
-  documents Document[]
-  communications Communication[]
-  evidenceRequirements EvidenceRequirement[]
-  accessGrants ClaimAccess[]
-  qualification ClaimQualification?
-  suggestedRoasteryConversations RoasteryConversation[] @relation("RoasterySuggestedClaim")
-  approvedRoasteryConversations RoasteryConversation[] @relation("RoasteryApprovedClaim")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                             String                     @id @default(cuid())
+  organisationId                 String
+  ownerId                        String?
+  claimNumber                    String
+  claimantName                   String
+  employerName                   String?
+  claimType                      String?
+  injury                         String
+  applicationDate                DateTime?
+  status                         ClaimStatus                @default(OPEN)
+  decisionOutcome                ClaimDecisionOutcome?
+  nextAction                     String
+  determinationReadiness         Int                        @default(0)
+  closedAt                       DateTime?
+  closedByName                   String?
+  deletedAt                      DateTime?
+  deletedByName                  String?
+  deletionReason                 String?
+  organisation                   Organisation               @relation(fields: [organisationId], references: [id], onDelete: Restrict)
+  owner                          User?                      @relation("ClaimOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  events                         ClaimEvent[]
+  documents                      Document[]
+  communications                 Communication[]
+  evidenceRequirements           EvidenceRequirement[]
+  accessGrants                   ClaimAccess[]
+  qualification                  ClaimQualification?
+  suggestedRoasteryConversations RoasteryConversation[]     @relation("RoasterySuggestedClaim")
+  approvedRoasteryConversations  RoasteryConversation[]     @relation("RoasteryApprovedClaim")
+  createdAt                      DateTime                   @default(now())
+  updatedAt                      DateTime                   @updatedAt
   @@unique([organisationId, claimNumber])
   @@index([organisationId, status])
   @@index([ownerId])
@@ -127,118 +267,118 @@ model Claim {
 }
 
 model ClaimAccess {
-  id String @id @default(cuid())
-  claimId String
-  userId String
-  level ClaimAccessLevel
-  reason ClaimAccessReason
-  startsAt DateTime?
-  endsAt DateTime?
-  revokedAt DateTime?
+  id          String            @id @default(cuid())
+  claimId     String
+  userId      String
+  level       ClaimAccessLevel
+  reason      ClaimAccessReason
+  startsAt    DateTime?
+  endsAt      DateTime?
+  revokedAt   DateTime?
   grantedById String
-  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  user User @relation("ClaimAccessUser", fields: [userId], references: [id], onDelete: Cascade)
-  grantedBy User @relation("ClaimAccessGrantor", fields: [grantedById], references: [id], onDelete: Restrict)
-  audits ClaimAccessAudit[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  claim       Claim             @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  user        User              @relation("ClaimAccessUser", fields: [userId], references: [id], onDelete: Cascade)
+  grantedBy   User              @relation("ClaimAccessGrantor", fields: [grantedById], references: [id], onDelete: Restrict)
+  audits      ClaimAccessAudit[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   @@index([claimId, userId])
   @@index([userId, revokedAt, startsAt, endsAt])
   @@index([claimId, revokedAt])
 }
 
 model ClaimAccessAudit {
-  id String @id @default(cuid())
+  id            String       @id @default(cuid())
   claimAccessId String?
-  claimId String
-  actorId String
-  action String
-  metadata Json?
-  occurredAt DateTime @default(now())
-  claimAccess ClaimAccess? @relation(fields: [claimAccessId], references: [id], onDelete: SetNull)
-  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  claimId       String
+  actorId       String
+  action        String
+  metadata      Json?
+  occurredAt    DateTime     @default(now())
+  claimAccess   ClaimAccess? @relation(fields: [claimAccessId], references: [id], onDelete: SetNull)
+  actor         User         @relation(fields: [actorId], references: [id], onDelete: Restrict)
   @@index([claimId, occurredAt])
   @@index([actorId, occurredAt])
 }
 
 model ClaimQualification {
-  id String @id @default(cuid())
-  claimId String @unique
-  consentProvided Boolean @default(false)
-  privacyAgreed Boolean @default(false)
-  medicalCertificate Boolean @default(false)
-  injuryDate DateTime?
-  dateFirstSeen DateTime?
-  certificateIssueDate DateTime?
-  claimLodgementDate DateTime?
-  diagnosis String?
-  capacity String?
-  treatingPractitioner String?
-  medicalFactors String?
+  id                     String    @id @default(cuid())
+  claimId                String    @unique
+  consentProvided        Boolean   @default(false)
+  privacyAgreed          Boolean   @default(false)
+  medicalCertificate     Boolean   @default(false)
+  injuryDate             DateTime?
+  dateFirstSeen          DateTime?
+  certificateIssueDate   DateTime?
+  claimLodgementDate     DateTime?
+  diagnosis              String?
+  capacity               String?
+  treatingPractitioner   String?
+  medicalFactors         String?
   firstSeenConsideration String?
   issueDateConsideration String?
-  sixMonthConsideration String?
-  completedByName String?
-  completedAt DateTime?
-  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  sixMonthConsideration  String?
+  completedByName        String?
+  completedAt            DateTime?
+  claim                  Claim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
   @@index([completedAt])
 }
 
 model ClaimEvent {
-  id String @id @default(cuid())
-  claimId String
-  createdById String?
-  type ClaimEventType @default(GENERAL)
-  title String
-  description String?
-  occurredAt DateTime @default(now())
-  metadata Json?
-  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  createdBy User? @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  documents Document[]
+  id             String          @id @default(cuid())
+  claimId        String
+  createdById    String?
+  type           ClaimEventType  @default(GENERAL)
+  title          String
+  description    String?
+  occurredAt     DateTime        @default(now())
+  metadata       Json?
+  claim          Claim           @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  createdBy      User?           @relation("EventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  documents      Document[]
   communications Communication[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   @@index([claimId, occurredAt])
   @@index([claimId, type])
   @@index([createdById])
 }
 
 model Communication {
-  id String @id @default(cuid())
-  organisationId String
-  claimId String?
-  eventId String?
-  direction CommunicationDirection @default(INCOMING)
-  channel CommunicationChannel @default(EMAIL)
-  status CommunicationStatus @default(RECEIVED)
-  matchMethod ClaimMatchMethod @default(UNMATCHED)
-  matchConfidence Int @default(0)
-  sender String
-  recipients Json
-  ccRecipients Json?
-  subject String
-  bodyText String?
-  bodyHtml String?
-  internetMessageId String? @unique
-  threadId String?
-  rawStorageKey String?
-  manuallyFiledAt DateTime?
-  manuallyFiledBy String?
-  manualFilingReason String?
-  receivedAt DateTime
-  deletedAt DateTime?
-  deletedByName String?
-  deletionReason String?
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  claim Claim? @relation(fields: [claimId], references: [id], onDelete: SetNull)
-  event ClaimEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  documents Document[]
-  evidenceLinks EvidenceRequirementLink[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String                 @id @default(cuid())
+  organisationId       String
+  claimId              String?
+  eventId              String?
+  direction            CommunicationDirection @default(INCOMING)
+  channel              CommunicationChannel   @default(EMAIL)
+  status               CommunicationStatus    @default(RECEIVED)
+  matchMethod          ClaimMatchMethod        @default(UNMATCHED)
+  matchConfidence      Int                     @default(0)
+  sender               String
+  recipients           Json
+  ccRecipients         Json?
+  subject              String
+  bodyText             String?
+  bodyHtml             String?
+  internetMessageId    String?                 @unique
+  threadId             String?
+  rawStorageKey        String?
+  manuallyFiledAt      DateTime?
+  manuallyFiledBy      String?
+  manualFilingReason   String?
+  receivedAt           DateTime
+  deletedAt            DateTime?
+  deletedByName        String?
+  deletionReason       String?
+  organisation         Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  claim                Claim?                  @relation(fields: [claimId], references: [id], onDelete: SetNull)
+  event                ClaimEvent?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  documents            Document[]
+  evidenceLinks        EvidenceRequirementLink[]
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
   @@index([organisationId, status, receivedAt])
   @@index([claimId, receivedAt])
   @@index([threadId])
@@ -246,26 +386,26 @@ model Communication {
 }
 
 model Document {
-  id String @id @default(cuid())
-  claimId String
-  eventId String?
+  id              String                    @id @default(cuid())
+  claimId         String
+  eventId         String?
   communicationId String?
-  originalName String
-  storageKey String @unique
-  mimeType String
-  sizeBytes Int
-  sha256 String
-  source DocumentSource @default(MANUAL_UPLOAD)
-  category DocumentCategory @default(OTHER)
-  deletedAt DateTime?
-  deletedByName String?
-  deletionReason String?
-  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  event ClaimEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  communication Communication? @relation(fields: [communicationId], references: [id], onDelete: SetNull)
-  evidenceLinks EvidenceRequirementLink[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  originalName    String
+  storageKey      String                    @unique
+  mimeType        String
+  sizeBytes       Int
+  sha256          String
+  source          DocumentSource            @default(MANUAL_UPLOAD)
+  category        DocumentCategory          @default(OTHER)
+  deletedAt       DateTime?
+  deletedByName   String?
+  deletionReason  String?
+  claim           Claim                     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  event           ClaimEvent?               @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  communication   Communication?            @relation(fields: [communicationId], references: [id], onDelete: SetNull)
+  evidenceLinks   EvidenceRequirementLink[]
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
   @@unique([claimId, sha256])
   @@index([claimId, createdAt])
   @@index([eventId])
@@ -275,29 +415,29 @@ model Document {
 }
 
 model EvidenceRequirement {
-  id String @id @default(cuid())
-  claimId String
-  category DocumentCategory
-  title String
-  description String?
-  requestedFrom String?
-  requestedFromType EvidenceRequestedFromType?
-  assignedOwner String?
-  requestedAt DateTime?
-  dueDate DateTime?
-  followUpDate DateTime?
-  blockingDetermination Boolean @default(true)
-  status EvidenceRequirementStatus @default(OUTSTANDING)
-  completedAt DateTime?
-  createdByName String?
-  updatedByName String?
-  deletedAt DateTime?
-  deletedByName String?
-  deletionReason String?
-  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  links EvidenceRequirementLink[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String                    @id @default(cuid())
+  claimId               String
+  category              DocumentCategory
+  title                 String
+  description           String?
+  requestedFrom         String?
+  requestedFromType     EvidenceRequestedFromType?
+  assignedOwner         String?
+  requestedAt           DateTime?
+  dueDate               DateTime?
+  followUpDate          DateTime?
+  blockingDetermination Boolean                   @default(true)
+  status                EvidenceRequirementStatus @default(OUTSTANDING)
+  completedAt           DateTime?
+  createdByName         String?
+  updatedByName         String?
+  deletedAt             DateTime?
+  deletedByName         String?
+  deletionReason        String?
+  claim                 Claim                     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  links                 EvidenceRequirementLink[]
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
   @@index([claimId, status])
   @@index([claimId, category])
   @@index([claimId, dueDate])
@@ -306,16 +446,16 @@ model EvidenceRequirement {
 }
 
 model EvidenceRequirementLink {
-  id String @id @default(cuid())
-  requirementId String
-  documentId String?
+  id              String               @id @default(cuid())
+  requirementId   String
+  documentId      String?
   communicationId String?
-  linkedByName String?
-  note String?
-  linkedAt DateTime @default(now())
-  requirement EvidenceRequirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
-  document Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  communication Communication? @relation(fields: [communicationId], references: [id], onDelete: Cascade)
+  linkedByName    String?
+  note            String?
+  linkedAt        DateTime             @default(now())
+  requirement     EvidenceRequirement  @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  document        Document?            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  communication   Communication?       @relation(fields: [communicationId], references: [id], onDelete: Cascade)
   @@unique([requirementId, documentId])
   @@unique([requirementId, communicationId])
   @@index([requirementId, linkedAt])
@@ -324,66 +464,66 @@ model EvidenceRequirementLink {
 }
 
 model RoasteryImportBatch {
-  id String @id @default(cuid())
-  organisationId String
-  uploadedById String
-  approvedById String?
-  proposedOwnerId String?
-  originalFilename String
-  storageKey String
-  sha256 String
-  status RoasteryBatchStatus @default(UPLOADED)
-  totalConversations Int @default(0)
-  stagedConversations Int @default(0)
-  importedConversations Int @default(0)
-  failedConversations Int @default(0)
-  errorMessage String?
-  uploadedAt DateTime @default(now())
-  parsingStartedAt DateTime?
-  parsingCompletedAt DateTime?
-  approvedAt DateTime?
-  importedAt DateTime?
-  rolledBackAt DateTime?
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  uploadedBy User @relation("RoasteryUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
-  approvedBy User? @relation("RoasteryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
-  proposedOwner User? @relation("RoasteryProposedOwner", fields: [proposedOwnerId], references: [id], onDelete: SetNull)
-  conversations RoasteryConversation[]
-  auditEvents RoasteryAuditEvent[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String                    @id @default(cuid())
+  organisationId        String
+  uploadedById          String
+  approvedById          String?
+  proposedOwnerId       String?
+  originalFilename      String
+  storageKey            String
+  sha256                String
+  status                RoasteryBatchStatus       @default(UPLOADED)
+  totalConversations    Int                       @default(0)
+  stagedConversations   Int                       @default(0)
+  importedConversations Int                       @default(0)
+  failedConversations   Int                       @default(0)
+  errorMessage          String?
+  uploadedAt            DateTime                  @default(now())
+  parsingStartedAt      DateTime?
+  parsingCompletedAt    DateTime?
+  approvedAt            DateTime?
+  importedAt            DateTime?
+  rolledBackAt          DateTime?
+  organisation          Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  uploadedBy            User                     @relation("RoasteryUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+  approvedBy            User?                    @relation("RoasteryApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  proposedOwner         User?                    @relation("RoasteryProposedOwner", fields: [proposedOwnerId], references: [id], onDelete: SetNull)
+  conversations         RoasteryConversation[]
+  auditEvents           RoasteryAuditEvent[]
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
   @@unique([organisationId, sha256])
   @@index([organisationId, status, uploadedAt])
   @@index([uploadedById, uploadedAt])
 }
 
 model RoasteryConversation {
-  id String @id @default(cuid())
-  batchId String
-  sourceConversationId String
-  sourceTitle String?
-  sourceCreatedAt DateTime?
-  sourceUpdatedAt DateTime?
-  status RoasteryConversationStatus @default(STAGED)
-  messageCount Int @default(0)
-  participantNames String[]
-  detectedClaimNumbers String[]
-  searchText String
-  rawJson Json
-  suggestedClaimId String?
-  approvedClaimId String?
-  matchMethod RoasteryMatchMethod @default(NONE)
-  matchConfidence Float?
-  reviewNotes String?
-  importedEventIds String[]
-  importedDocumentIds String[]
-  importedAt DateTime?
-  rolledBackAt DateTime?
-  batch RoasteryImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  suggestedClaim Claim? @relation("RoasterySuggestedClaim", fields: [suggestedClaimId], references: [id], onDelete: SetNull)
-  approvedClaim Claim? @relation("RoasteryApprovedClaim", fields: [approvedClaimId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                     String                     @id @default(cuid())
+  batchId                String
+  sourceConversationId   String
+  sourceTitle            String?
+  sourceCreatedAt        DateTime?
+  sourceUpdatedAt        DateTime?
+  status                 RoasteryConversationStatus @default(STAGED)
+  messageCount           Int                        @default(0)
+  participantNames       String[]
+  detectedClaimNumbers   String[]
+  searchText             String
+  rawJson                Json
+  suggestedClaimId       String?
+  approvedClaimId        String?
+  matchMethod            RoasteryMatchMethod        @default(NONE)
+  matchConfidence        Float?
+  reviewNotes            String?
+  importedEventIds       String[]
+  importedDocumentIds    String[]
+  importedAt             DateTime?
+  rolledBackAt           DateTime?
+  batch                  RoasteryImportBatch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  suggestedClaim         Claim?                     @relation("RoasterySuggestedClaim", fields: [suggestedClaimId], references: [id], onDelete: SetNull)
+  approvedClaim          Claim?                     @relation("RoasteryApprovedClaim", fields: [approvedClaimId], references: [id], onDelete: SetNull)
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
   @@unique([batchId, sourceConversationId])
   @@index([batchId, status])
   @@index([suggestedClaimId])
@@ -391,13 +531,13 @@ model RoasteryConversation {
 }
 
 model RoasteryAuditEvent {
-  id String @id @default(cuid())
-  batchId String
-  actorId String
-  action String
-  metadata Json?
-  occurredAt DateTime @default(now())
-  batch RoasteryImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  id         String               @id @default(cuid())
+  batchId    String
+  actorId    String
+  action     String
+  metadata   Json?
+  occurredAt DateTime             @default(now())
+  batch      RoasteryImportBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
   @@index([batchId, occurredAt])
   @@index([actorId, occurredAt])
 }
