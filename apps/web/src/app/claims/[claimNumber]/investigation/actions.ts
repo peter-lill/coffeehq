@@ -18,6 +18,14 @@ import {
   updateClaimEvidenceRequirementStatus,
 } from "@/server/services/evidence-requirement-service";
 import {
+  createMedicalWorkspaceRecord,
+  MEDICAL_RECORD_STATUSES,
+  PRACTITIONER_TYPES,
+  type MedicalRecordStatus,
+  type PractitionerType,
+  updateMedicalWorkspaceRecord,
+} from "@/server/services/medical-workspace-service";
+import {
   createProceduralFairnessWorkflow,
   PROCEDURAL_FAIRNESS_STATUSES,
   type ProceduralFairnessRecipient,
@@ -124,6 +132,41 @@ export async function updateConflictAction(claimNumber: string, conflictId: stri
     outstandingEvidence: lines(formData.get("outstandingEvidence")),
     finding: String(formData.get("finding") || ""),
     decisionRelevance: String(formData.get("decisionRelevance") || ""),
+  });
+  revalidatePath(`/claims/${encodeURIComponent(claimNumber)}/investigation`);
+}
+
+export async function createMedicalRecordAction(claimNumber: string, formData: FormData) {
+  const practitionerType = String(formData.get("practitionerType"));
+  if (!PRACTITIONER_TYPES.includes(practitionerType as PractitionerType)) throw new Error("Invalid practitioner type.");
+  await createMedicalWorkspaceRecord({
+    claimNumber,
+    practitionerType: practitionerType as PractitionerType,
+    practitionerName: String(formData.get("practitionerName") || ""),
+    reportDate: optionalDate(formData.get("reportDate")),
+    diagnosis: String(formData.get("diagnosis") || ""),
+    capacity: String(formData.get("capacity") || ""),
+    causativeFactors: lines(formData.get("causativeFactors")),
+    workContributionOpinion: String(formData.get("workContributionOpinion") || ""),
+    treatment: String(formData.get("treatment") || ""),
+    restrictions: String(formData.get("restrictions") || ""),
+    clarificationQuestions: lines(formData.get("clarificationQuestions")),
+    notes: String(formData.get("notes") || ""),
+  });
+  revalidatePath(`/claims/${encodeURIComponent(claimNumber)}/investigation`);
+}
+
+export async function updateMedicalRecordAction(claimNumber: string, recordId: string, formData: FormData) {
+  const status = String(formData.get("status"));
+  if (!MEDICAL_RECORD_STATUSES.includes(status as MedicalRecordStatus)) throw new Error("Invalid medical record status.");
+  await updateMedicalWorkspaceRecord({
+    claimNumber,
+    recordId,
+    status: status as MedicalRecordStatus,
+    causativeFactors: lines(formData.get("causativeFactors")),
+    workContributionOpinion: String(formData.get("workContributionOpinion") || ""),
+    clarificationQuestions: lines(formData.get("clarificationQuestions")),
+    notes: String(formData.get("notes") || ""),
   });
   revalidatePath(`/claims/${encodeURIComponent(claimNumber)}/investigation`);
 }
