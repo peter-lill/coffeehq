@@ -29,7 +29,7 @@ export function BeanClient() {
       try {
         setResult(await brewFileNoteAction(source));
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : "Unable to brew the transcript.");
+        setError(cause instanceof Error ? cause.message : "Unable to brew the file note.");
       }
     });
   }
@@ -48,7 +48,7 @@ export function BeanClient() {
         setSource(imported.text);
       } catch (cause) {
         setImportedDocument(null);
-        setError(cause instanceof Error ? cause.message : "Unable to import the selected document.");
+        setError(cause instanceof Error ? cause.message : "Unable to add the selected document.");
       } finally {
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
@@ -95,9 +95,10 @@ export function BeanClient() {
       <section className="rounded-2xl border border-slate-300 bg-white p-5 text-slate-950 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold">Document intake</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Add ingredients</p>
+            <h2 className="mt-1 text-xl font-bold">Source material</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              Paste a full transcript, drag in a document, or select a TXT, DOCX, PDF or RTF file.
+              Paste a full Genesys transcript, drop in a document, or choose a TXT, DOCX, PDF or RTF file.
             </p>
           </div>
           <div className="text-right text-xs font-semibold text-slate-500">
@@ -117,7 +118,7 @@ export function BeanClient() {
         >
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="font-bold text-slate-900">Drop a document here</p>
+              <p className="font-bold text-slate-900">Drop source material here</p>
               <p className="mt-1 text-sm text-slate-600">Maximum file size 25 MB.</p>
             </div>
             <div>
@@ -134,7 +135,7 @@ export function BeanClient() {
                 htmlFor="bean-document-upload"
                 className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold text-slate-900 hover:bg-slate-100"
               >
-                {isPending ? "Importing..." : "Choose file"}
+                {isPending ? "Adding..." : "Choose file"}
               </label>
             </div>
           </div>
@@ -142,7 +143,7 @@ export function BeanClient() {
 
         {importedDocument ? (
           <div className="mt-4 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950">
-            <p className="font-bold">{importedDocument.filename}</p>
+            <p className="font-bold">Added to the brew: {importedDocument.filename}</p>
             <p className="mt-1">
               {importedDocument.extension.toUpperCase()} · {(importedDocument.size / 1024).toLocaleString("en-AU", { maximumFractionDigits: 1 })} KB
               {importedDocument.pageCount ? ` · ${importedDocument.pageCount} pages` : ""}
@@ -153,7 +154,7 @@ export function BeanClient() {
         ) : null}
 
         <label htmlFor="bean-source" className="mt-5 block text-sm font-bold text-slate-800">
-          Editable source text
+          Review source material
         </label>
         <textarea
           id="bean-source"
@@ -172,7 +173,7 @@ export function BeanClient() {
             disabled={isPending || !source.trim()}
             className="min-h-12 rounded-xl bg-slate-950 px-6 py-3 text-base font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isPending ? "Processing..." : "Generate File Note"}
+            {isPending ? "Brewing..." : "Brew File Note"}
           </button>
           <button
             type="button"
@@ -180,7 +181,7 @@ export function BeanClient() {
             disabled={isPending || (!source && !result)}
             className="min-h-12 rounded-xl border border-slate-400 bg-white px-5 py-3 text-base font-semibold text-slate-900 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Clear
+            Clear brew
           </button>
         </div>
 
@@ -190,9 +191,10 @@ export function BeanClient() {
       <section className="rounded-2xl border border-slate-300 bg-white p-5 text-slate-950 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold">Generated file note</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Magical Beans</p>
+            <h2 className="mt-1 text-xl font-bold">Brew result</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
-              {result ? `${result.metadata.source} · ${result.turns.length} transcript turns` : "Your generated file notes will appear here."}
+              {result ? `${result.metadata.source} · ${result.turns.length} transcript turns` : "Your CPIS-ready file notes will appear here."}
             </p>
           </div>
           {result?.notes.length ? <button type="button" onClick={copyAll} className="min-h-11 shrink-0 rounded-xl border border-slate-400 bg-white px-4 py-2 text-sm font-bold hover:bg-slate-100">Copy all</button> : null}
@@ -210,8 +212,8 @@ export function BeanClient() {
         {!result ? (
           <div className="mt-5 flex min-h-[700px] items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center">
             <div>
-              <p className="text-lg font-bold text-slate-800">Nothing generated yet</p>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">Import or paste the complete source, review the extracted text, then generate the file note.</p>
+              <p className="text-lg font-bold text-slate-800">Nothing brewed yet</p>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">Add the complete source material, review the text, then brew the file note.</p>
             </div>
           </div>
         ) : null}
