@@ -3,15 +3,18 @@ import { notFound } from "next/navigation";
 
 import { CausativeFactorAnalysisPanel } from "@/components/decision/CausativeFactorAnalysisPanel";
 import { DecisionReadinessPanel } from "@/components/decision/DecisionReadinessPanel";
+import { LegislativeAssessmentPanel } from "@/components/decision/LegislativeAssessmentPanel";
 import { ClaimTabs } from "@/components/workspace/ClaimTabs";
 import { buildExecutiveClaimSummary } from "@/server/domain/claim";
 import { buildCausativeFactorAnalysis } from "@/server/domain/decision/causative-factors";
+import { buildLegislativeAssessment } from "@/server/domain/decision/legislative-assessment";
 import { buildDecisionReadiness } from "@/server/domain/decision/readiness";
 import { listCausativeFactorAssessments } from "@/server/services/causative-factor-assessment-service";
 import { getClaimEvents } from "@/server/services/claim-event-service";
 import { getClaimDocuments } from "@/server/services/document-service";
 import { getClaim } from "@/server/services/claim-service";
 import { listConflictRecords } from "@/server/services/conflict-workspace-service";
+import { listLegislativeAssessments } from "@/server/services/legislative-assessment-service";
 import { listMedicalWorkspaceRecords } from "@/server/services/medical-workspace-service";
 
 export const dynamic = "force-dynamic";
@@ -26,12 +29,13 @@ export default async function DecisionPage({ params }: DecisionPageProps) {
 
   if (!claim) notFound();
 
-  const [events, documents, medicalRecords, conflicts, assessments] = await Promise.all([
+  const [events, documents, medicalRecords, conflicts, assessments, legislativeRecords] = await Promise.all([
     getClaimEvents(claim.id),
     getClaimDocuments(claim.id),
     listMedicalWorkspaceRecords(claim.id),
     listConflictRecords(claim.id),
     listCausativeFactorAssessments(claim.id),
+    listLegislativeAssessments(claim.id),
   ]);
 
   const summary = buildExecutiveClaimSummary({ claim, documents, events });
@@ -40,6 +44,10 @@ export default async function DecisionPage({ params }: DecisionPageProps) {
     medicalRecords,
     conflicts,
     assessments,
+  });
+  const legislativeAssessment = buildLegislativeAssessment({
+    causativeFactors,
+    assessments: legislativeRecords,
   });
 
   return (
@@ -72,6 +80,11 @@ export default async function DecisionPage({ params }: DecisionPageProps) {
         <ClaimTabs />
         <DecisionReadinessPanel result={readiness} />
         <CausativeFactorAnalysisPanel claimNumber={claim.claimNumber} result={causativeFactors} />
+        <LegislativeAssessmentPanel
+          claimNumber={claim.claimNumber}
+          result={legislativeAssessment}
+          causativeFactors={causativeFactors}
+        />
       </div>
     </main>
   );
