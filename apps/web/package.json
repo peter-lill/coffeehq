@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "auth:setup": "node scripts/coffeehq-auth-setup.cjs",
     "mail:sync": "tsx scripts/sync-incoming-claims.ts"
   },
   "dependencies": {
