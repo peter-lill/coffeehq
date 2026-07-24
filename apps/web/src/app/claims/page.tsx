@@ -2,6 +2,8 @@ import { ClaimsTable } from "@/components/claims/ClaimsTable";
 import { AppShell } from "@/components/layout/AppShell";
 import { getClaims } from "@/server/services/claim-service";
 
+export const dynamic = "force-dynamic";
+
 export default async function ClaimsPage() {
   const claims = await getClaims();
 
