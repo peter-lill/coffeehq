@@ -117,14 +117,38 @@ model Organisation {
 }
 
 model User {
-  id            String       @id @default(cuid())
-  name          String
-  email         String       @unique
-  memberships   Membership[]
-  ownedClaims   Claim[]      @relation("ClaimOwner")
-  createdEvents ClaimEvent[] @relation("EventCreator")
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                  String        @id @default(cuid())
+  name                String
+  email               String        @unique
+  passwordHash        String?
+  isActive            Boolean       @default(true)
+  mustChangePassword  Boolean       @default(false)
+  lastLoginAt         DateTime?
+  failedLoginAttempts Int           @default(0)
+  lockedUntil         DateTime?
+  memberships         Membership[]
+  ownedClaims         Claim[]       @relation("ClaimOwner")
+  createdEvents       ClaimEvent[]  @relation("EventCreator")
+  authSessions        AuthSession[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model AuthSession {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  lastSeenAt DateTime  @default(now())
+  userAgent  String?
+  ipAddress  String?
+  revokedAt  DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([expiresAt])
 }
 
 model Membership {
@@ -187,34 +211,34 @@ model ClaimEvent {
 }
 
 model Communication {
-  id                String                 @id @default(cuid())
-  organisationId    String
-  claimId           String?
-  eventId           String?
-  direction         CommunicationDirection @default(INCOMING)
-  channel           CommunicationChannel   @default(EMAIL)
-  status            CommunicationStatus    @default(RECEIVED)
-  matchMethod       ClaimMatchMethod        @default(UNMATCHED)
-  matchConfidence   Int                     @default(0)
-  sender            String
-  recipients        Json
-  ccRecipients      Json?
-  subject           String
-  bodyText          String?
-  bodyHtml          String?
-  internetMessageId String?                 @unique
-  threadId          String?
-  rawStorageKey     String?
-  manuallyFiledAt   DateTime?
-  manuallyFiledBy   String?
-  manualFilingReason String?
-  receivedAt        DateTime
-  organisation      Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  claim             Claim?                  @relation(fields: [claimId], references: [id], onDelete: SetNull)
-  event             ClaimEvent?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  documents         Document[]
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
+  id                  String                 @id @default(cuid())
+  organisationId      String
+  claimId             String?
+  eventId             String?
+  direction           CommunicationDirection @default(INCOMING)
+  channel             CommunicationChannel   @default(EMAIL)
+  status              CommunicationStatus    @default(RECEIVED)
+  matchMethod         ClaimMatchMethod        @default(UNMATCHED)
+  matchConfidence     Int                     @default(0)
+  sender              String
+  recipients          Json
+  ccRecipients        Json?
+  subject             String
+  bodyText            String?
+  bodyHtml            String?
+  internetMessageId   String?                 @unique
+  threadId            String?
+  rawStorageKey       String?
+  manuallyFiledAt     DateTime?
+  manuallyFiledBy     String?
+  manualFilingReason  String?
+  receivedAt          DateTime
+  organisation        Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  claim               Claim?                  @relation(fields: [claimId], references: [id], onDelete: SetNull)
+  event               ClaimEvent?             @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  documents           Document[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
 
   @@index([organisationId, status, receivedAt])
   @@index([claimId, receivedAt])
@@ -246,22 +270,21 @@ model Document {
   @@index([claimId, category])
 }
 
-
 model EvidenceRequirement {
-  id              String                    @id @default(cuid())
-  claimId         String
-  category        DocumentCategory
-  title           String
-  description     String?
-  requestedFrom   String?
-  dueDate         DateTime?
-  status          EvidenceRequirementStatus @default(OUTSTANDING)
-  completedAt     DateTime?
-  createdByName   String?
-  updatedByName   String?
-  claim           Claim                     @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
+  id            String                    @id @default(cuid())
+  claimId       String
+  category      DocumentCategory
+  title         String
+  description   String?
+  requestedFrom String?
+  dueDate       DateTime?
+  status        EvidenceRequirementStatus @default(OUTSTANDING)
+  completedAt   DateTime?
+  createdByName String?
+  updatedByName String?
+  claim         Claim                     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
 
   @@index([claimId, status])
   @@index([claimId, category])
