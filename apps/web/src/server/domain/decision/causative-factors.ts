@@ -2,10 +2,30 @@ import type { ConflictRecord } from "@/server/services/conflict-workspace-servic
 import type { MedicalWorkspaceRecord } from "@/server/services/medical-workspace-service";
 
 export type EvidencePosition = "SUPPORTS" | "DISPUTES" | "MIXED" | "NOT_RECORDED";
+export type SubstantiationStatus =
+  | "SUBSTANTIATED"
+  | "PARTIALLY_SUBSTANTIATED"
+  | "UNSUBSTANTIATED"
+  | "NOT_ASSESSED";
+
+export type CausativeFactorAssessment = {
+  factorKey: string;
+  status: SubstantiationStatus;
+  reasons: string;
+  assessedBy: string;
+  assessedAt: Date | null;
+};
 
 export type CausativeFactorAnalysis = {
   id: string;
   label: string;
+  substantiation: {
+    status: SubstantiationStatus;
+    trafficLight: "GREEN" | "ORANGE" | "RED" | "GREY";
+    reasons: string;
+    assessedBy: string;
+    assessedAt: Date | null;
+  };
   medical: {
     position: EvidencePosition;
     practitioners: string[];
@@ -38,7 +58,10 @@ export type CausativeFactorAnalysis = {
 export type CausativeFactorAnalysisResult = {
   factors: CausativeFactorAnalysis[];
   count: number;
-  findingsRecorded: number;
+  substantiated: number;
+  partiallySubstantiated: number;
+  unsubstantiated: number;
+  notAssessed: number;
   requiringFurtherEnquiry: number;
   explanation: string;
   boundaryNotice: string;
@@ -65,11 +88,22 @@ function position(values: string[], oppositeValues: string[] = []): EvidencePosi
   return "NOT_RECORDED";
 }
 
+function trafficLight(status: SubstantiationStatus) {
+  if (status === "SUBSTANTIATED") return "GREEN" as const;
+  if (status === "PARTIALLY_SUBSTANTIATED") return "ORANGE" as const;
+  if (status === "UNSUBSTANTIATED") return "RED" as const;
+  return "GREY" as const;
+}
+
 export function buildCausativeFactorAnalysis(input: {
   medicalRecords: MedicalWorkspaceRecord[];
   conflicts: ConflictRecord[];
+  assessments?: CausativeFactorAssessment[];
 }): CausativeFactorAnalysisResult {
   const labels = new Map<string, string>();
+  const assessments = new Map(
+    (input.assessments ?? []).map((assessment) => [key(assessment.factorKey), assessment]),
+  );
 
   for (const record of input.medicalRecords) {
     if (record.status === "SUPERSEDED" || record.status === "CLOSED") continue;
@@ -83,6 +117,12 @@ export function buildCausativeFactorAnalysis(input: {
     if (normalise(factor)) labels.set(key(factor), normalise(factor));
   }
 
+  for (const assessment of input.assessments ?? []) {
+    if (normalise(assessment.factorKey)) {
+      labels.set(key(assessment.factorKey), normalise(assessment.factorKey));
+    }
+  }
+
   const factors = [...labels.entries()].map(([id, label]): CausativeFactorAnalysis => {
     const medical = input.medicalRecords.filter(
       (record) =>
@@ -91,6 +131,7 @@ export function buildCausativeFactorAnalysis(input: {
         record.causativeFactors.some((factor) => key(factor) === id),
     );
     const conflicts = input.conflicts.filter((conflict) => key(conflict.causativeFactor || conflict.issue) === id);
+    const assessment = assessments.get(id);
 
     const workerAccounts = unique(conflicts.map((conflict) => conflict.workerPosition));
     const employerAccounts = unique(conflicts.map((conflict) => conflict.employerPosition));
@@ -104,15 +145,23 @@ export function buildCausativeFactorAnalysis(input: {
     );
 
     const investigationFinding = findings.length === 1 ? findings[0] : findings.length > 1 ? findings.join("; ") : null;
-    const status = investigationFinding
+    const status = assessment && assessment.status !== "NOT_ASSESSED"
       ? "FINDING_RECORDED"
       : clarificationOutstanding || outstandingEvidence.length > 0
         ? "FURTHER_ENQUIRY"
         : "READY_FOR_FINDING";
+    const substantiationStatus = assessment?.status ?? "NOT_ASSESSED";
 
     return {
       id,
       label,
+      substantiation: {
+        status: substantiationStatus,
+        trafficLight: trafficLight(substantiationStatus),
+        reasons: assessment?.reasons ?? "",
+        assessedBy: assessment?.assessedBy ?? "",
+        assessedAt: assessment?.assessedAt ?? null,
+      },
       medical: {
         position: medical.length ? "SUPPORTS" : "NOT_RECORDED",
         practitioners: unique(medical.map((record) => `${record.practitionerName} (${record.practitionerType})`)),
@@ -141,25 +190,33 @@ export function buildCausativeFactorAnalysis(input: {
       status,
       explanation:
         status === "FINDING_RECORDED"
-          ? "A human investigation finding has been recorded for this causative factor."
+          ? "A human substantiation finding has been recorded for this causative factor."
           : status === "FURTHER_ENQUIRY"
-            ? "Further evidence or medical clarification remains outstanding before a finding is recorded."
-            : "Recorded evidence is available for human assessment, but no investigation finding has been recorded.",
+            ? "Further evidence or medical clarification remains outstanding before a substantiation finding is recorded."
+            : "Recorded evidence is available for human assessment, but no substantiation finding has been recorded.",
     };
   });
 
-  const findingsRecorded = factors.filter((factor) => factor.status === "FINDING_RECORDED").length;
+  const substantiated = factors.filter((factor) => factor.substantiation.status === "SUBSTANTIATED").length;
+  const partiallySubstantiated = factors.filter(
+    (factor) => factor.substantiation.status === "PARTIALLY_SUBSTANTIATED",
+  ).length;
+  const unsubstantiated = factors.filter((factor) => factor.substantiation.status === "UNSUBSTANTIATED").length;
+  const notAssessed = factors.filter((factor) => factor.substantiation.status === "NOT_ASSESSED").length;
   const requiringFurtherEnquiry = factors.filter((factor) => factor.status === "FURTHER_ENQUIRY").length;
 
   return {
     factors,
     count: factors.length,
-    findingsRecorded,
+    substantiated,
+    partiallySubstantiated,
+    unsubstantiated,
+    notAssessed,
     requiringFurtherEnquiry,
     explanation: factors.length
-      ? `${factors.length} causative factor${factors.length === 1 ? "" : "s"} identified from structured medical and conflict records.`
+      ? `${factors.length} causative factor${factors.length === 1 ? "" : "s"} identified from structured medical, conflict and human assessment records.`
       : "No structured causative factors have been recorded in the Medical or Conflict workspaces.",
     boundaryNotice:
-      "CoffeeHQ groups recorded evidence by causative factor and displays human findings. It does not determine credibility, medical causation, statutory contribution or liability.",
+      "Traffic-light colours display a finding recorded by an authorised human user: green means substantiated, orange means partially substantiated, red means unsubstantiated and grey means not assessed. CoffeeHQ does not select the colour, determine credibility, medical causation, statutory contribution or liability.",
   };
 }
