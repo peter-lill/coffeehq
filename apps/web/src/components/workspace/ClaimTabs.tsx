@@ -7,10 +7,13 @@ export function ClaimTabs() {
   const pathname = usePathname();
   const claimMatch = pathname.match(/^\/claims\/([^/]+)/);
   const claimBase = claimMatch ? `/claims/${claimMatch[1]}` : "/claims";
+  const investigationActive = pathname.endsWith("/investigation");
   const evidenceActive = pathname.endsWith("/evidence");
+  const overviewActive = !investigationActive && !evidenceActive;
 
   const tabs = [
-    { label: "Overview", href: claimBase, active: !evidenceActive },
+    { label: "Overview", href: claimBase, active: overviewActive },
+    { label: "Investigation", href: `${claimBase}/investigation`, active: investigationActive },
     { label: "Events", href: `${claimBase}#timeline`, active: false },
     { label: "Evidence", href: `${claimBase}/evidence`, active: evidenceActive },
     { label: "Medical", href: `${claimBase}/evidence#medical-evidence`, active: false },
