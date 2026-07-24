@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { CausativeFactorAnalysisPanel } from "@/components/decision/CausativeFactorAnalysisPanel";
 import { DecisionReadinessPanel } from "@/components/decision/DecisionReadinessPanel";
 import { ClaimTabs } from "@/components/workspace/ClaimTabs";
 import { buildExecutiveClaimSummary } from "@/server/domain/claim";
+import { buildCausativeFactorAnalysis } from "@/server/domain/decision/causative-factors";
 import { buildDecisionReadiness } from "@/server/domain/decision/readiness";
+import { listCausativeFactorAssessments } from "@/server/services/causative-factor-assessment-service";
 import { getClaimEvents } from "@/server/services/claim-event-service";
 import { getClaimDocuments } from "@/server/services/document-service";
 import { getClaim } from "@/server/services/claim-service";
+import { listConflictRecords } from "@/server/services/conflict-workspace-service";
+import { listMedicalWorkspaceRecords } from "@/server/services/medical-workspace-service";
 
 export const dynamic = "force-dynamic";
 
@@ -21,13 +26,21 @@ export default async function DecisionPage({ params }: DecisionPageProps) {
 
   if (!claim) notFound();
 
-  const [events, documents] = await Promise.all([
+  const [events, documents, medicalRecords, conflicts, assessments] = await Promise.all([
     getClaimEvents(claim.id),
     getClaimDocuments(claim.id),
+    listMedicalWorkspaceRecords(claim.id),
+    listConflictRecords(claim.id),
+    listCausativeFactorAssessments(claim.id),
   ]);
 
   const summary = buildExecutiveClaimSummary({ claim, documents, events });
   const readiness = buildDecisionReadiness(claim.claimNumber, summary);
+  const causativeFactors = buildCausativeFactorAnalysis({
+    medicalRecords,
+    conflicts,
+    assessments,
+  });
 
   return (
     <main className="min-h-screen bg-slate-100 text-slate-900">
@@ -58,6 +71,7 @@ export default async function DecisionPage({ params }: DecisionPageProps) {
       <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6">
         <ClaimTabs />
         <DecisionReadinessPanel result={readiness} />
+        <CausativeFactorAnalysisPanel claimNumber={claim.claimNumber} result={causativeFactors} />
       </div>
     </main>
   );
