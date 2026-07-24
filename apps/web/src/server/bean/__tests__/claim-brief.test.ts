@@ -1,77 +1,94 @@
 import { describe, expect, it } from "vitest";
 
-import { buildBeanClaimBrief } from "@/server/bean/claim-brief";
+import { buildExecutiveClaimSummary } from "@/server/bean/executive-summary";
 
 const claim = {
   claimNumber: "S25AA123456",
   name: "Alex Example",
+  employerName: "Example Employer",
   injury: "psychological injury",
-  status: "Under review",
+  status: "UNDER_REVIEW",
   nextAction: "Request treating GP clarification",
   determinationReadiness: 42,
 };
 
-describe("buildBeanClaimBrief", () => {
-  it("builds a grounded summary and evidence coverage", () => {
-    const brief = buildBeanClaimBrief({
+const document = (id: string, category: string) => ({
+  id,
+  category,
+  originalName: `${id}.pdf`,
+  createdAt: new Date("2026-07-20T00:00:00Z"),
+});
+
+const event = (id: string, type: string, day = 21) => ({
+  id,
+  type,
+  title: `${type} event`,
+  description: null,
+  occurredAt: new Date(`2026-07-${String(day).padStart(2, "0")}T02:00:00Z`),
+});
+
+describe("buildExecutiveClaimSummary", () => {
+  it("calculates transparent readiness from recorded evidence", () => {
+    const summary = buildExecutiveClaimSummary({
       claim,
       documents: [
-        {
-          id: "doc-1",
-          category: "MEDICAL",
-          originalName: "certificate.pdf",
-          createdAt: new Date("2026-07-20T00:00:00Z"),
-        },
-        {
-          id: "doc-2",
-          category: "WORKER",
-          originalName: "statement.pdf",
-          createdAt: new Date("2026-07-21T00:00:00Z"),
-        },
+        document("medical", "MEDICAL"),
+        document("worker", "WORKER"),
+        document("employer", "EMPLOYER"),
+        document("witness", "WITNESS"),
+        document("payroll", "PAYROLL"),
       ],
       events: [
-        {
-          id: "event-1",
-          type: "EMAIL_RECEIVED",
-          title: "Worker statement received",
-          description: "Statement added to the claim.",
-          occurredAt: new Date("2026-07-21T02:00:00Z"),
-        },
+        event("fairness", "NATURAL_JUSTICE_ISSUED"),
+        event("response", "WORKER_RESPONSE_RECEIVED", 22),
       ],
     });
 
-    expect(brief.summary).toContain("S25AA123456");
-    expect(brief.summary).toContain("2 document(s)");
-    expect(brief.evidenceCoverage).toEqual([
-      { category: "MEDICAL", count: 1 },
-      { category: "WORKER", count: 1 },
-    ]);
-    expect(brief.gaps).toContain("No employer evidence is currently recorded.");
-    expect(brief.gaps).toContain(
-      "Determination readiness is below 50%; further evidence review is likely required.",
+    expect(summary.readiness.score).toBe(100);
+    expect(summary.readiness.categories.every((category) => category.complete)).toBe(true);
+    expect(summary.proceduralFairness.status).toBe("COMPLETE");
+    expect(summary.evidenceGaps).toHaveLength(0);
+  });
+
+  it("prioritises missing core evidence and recommends the next step", () => {
+    const summary = buildExecutiveClaimSummary({ claim, documents: [], events: [] });
+
+    expect(summary.readiness.score).toBe(0);
+    expect(summary.evidenceGaps[0]?.priority).toBe("HIGH");
+    expect(summary.evidenceGaps.map((gap) => gap.category)).toEqual(
+      expect.arrayContaining(["MEDICAL", "WORKER", "EMPLOYER", "TIMELINE"]),
+    );
+    expect(summary.nextAction.priority).toBe("HIGH");
+  });
+
+  it("recommends procedural fairness review when employer evidence is present", () => {
+    const summary = buildExecutiveClaimSummary({
+      claim,
+      documents: [document("worker", "WORKER"), document("employer", "EMPLOYER")],
+      events: [event("worker-account", "WORKER_RESPONSE_RECEIVED")],
+    });
+
+    expect(summary.nextAction.title).toContain("procedural fairness");
+    expect(summary.conflicts).toHaveLength(1);
+    expect(summary.conflicts[0]?.sourceIds).toEqual(
+      expect.arrayContaining(["worker", "employer", "worker-account"]),
     );
   });
 
-  it("sorts chronology newest first and limits it to five events", () => {
-    const events = Array.from({ length: 7 }, (_, index) => ({
-      id: `event-${index}`,
-      type: "NOTE_ADDED",
-      title: `Event ${index}`,
-      description: null,
-      occurredAt: new Date(`2026-07-${String(index + 1).padStart(2, "0")}T00:00:00Z`),
-    }));
+  it("sorts the chronology newest first", () => {
+    const summary = buildExecutiveClaimSummary({
+      claim,
+      documents: [],
+      events: [event("older", "GENERAL", 1), event("newer", "GENERAL", 9)],
+    });
 
-    const brief = buildBeanClaimBrief({ claim, documents: [], events });
-
-    expect(brief.recentChronology).toHaveLength(5);
-    expect(brief.recentChronology[0]?.title).toBe("Event 6");
-    expect(brief.recentChronology[4]?.title).toBe("Event 2");
+    expect(summary.chronology.map((item) => item.id)).toEqual(["newer", "older"]);
   });
 
   it("keeps the statutory boundary visible", () => {
-    const brief = buildBeanClaimBrief({ claim, documents: [], events: [] });
+    const summary = buildExecutiveClaimSummary({ claim, documents: [], events: [] });
 
-    expect(brief.boundaryNotice).toContain("does not determine liability");
-    expect(brief.gaps).toContain("No claim chronology events are currently recorded.");
+    expect(summary.boundaryNotice).toContain("does not determine liability");
+    expect(summary.boundaryNotice).toContain("does not");
   });
 });
