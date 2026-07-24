@@ -3,6 +3,8 @@ import { PriorityClaims } from "@/components/dashboard/PriorityClaims";
 import { StatusCards } from "@/components/dashboard/StatusCards";
 import { getClaims } from "@/server/services/claim-service";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const claims = await getClaims();
 
