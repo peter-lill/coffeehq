@@ -4,7 +4,7 @@ import { Sidebar } from "./Sidebar";
 
 type AppShellProps = {
   children: ReactNode;
-  activeItem: "Dashboard" | "Claims" | "Tasks" | "Evidence" | "Reports";
+  activeItem: string;
 };
 
 export function AppShell({ children, activeItem }: AppShellProps) {
