@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test",
+    "test": "vitest run",
     "db:verify-history": "node scripts/coffeeos-verify-migration-history.mjs",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
@@ -41,6 +41,7 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "@types/mailparser": "^3.4.6",
-    "tsx": "^4.20.6"
+    "tsx": "^4.20.6",
+    "vitest": "^3.2.4"
   }
 }
