@@ -14,21 +14,6 @@ if (!DATABASE_URL) {
 
 const baselines = [
   {
-    migration: "20260716000000_initial_baseline",
-    tables: [
-      "Organisation",
-      "User",
-      "Membership",
-      "Claim",
-      "ClaimEvent",
-      "Communication",
-      "Document",
-      "EvidenceRequirement",
-      "EvidenceRequirementLink",
-    ],
-    columns: [],
-  },
-  {
     migration: "20260717020000_claim_access_foundation",
     tables: ["ClaimAccess", "ClaimAccessAudit"],
     columns: [{ table: "Claim", column: "ownerId" }],
