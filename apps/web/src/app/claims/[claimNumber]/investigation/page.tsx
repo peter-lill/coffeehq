@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 
 import { EvidenceRequirementsPanel } from "@/components/investigation/EvidenceRequirementsPanel";
 import { InvestigationDashboard } from "@/components/investigation/InvestigationDashboard";
+import { ProceduralFairnessPanel } from "@/components/investigation/ProceduralFairnessPanel";
 import { ClaimTabs } from "@/components/workspace/ClaimTabs";
 import { buildExecutiveClaimSummary } from "@/server/domain/claim";
 import { getClaimEvents } from "@/server/services/claim-event-service";
 import { getClaimDocuments } from "@/server/services/document-service";
 import { getClaimEvidenceRequirements } from "@/server/services/evidence-requirement-service";
 import { getClaim } from "@/server/services/claim-service";
+import { listProceduralFairnessWorkflows } from "@/server/services/procedural-fairness-service";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +24,11 @@ export default async function InvestigationPage({ params }: InvestigationPagePro
 
   if (!claim) notFound();
 
-  const [events, documents, requirements] = await Promise.all([
+  const [events, documents, requirements, proceduralFairnessWorkflows] = await Promise.all([
     getClaimEvents(claim.id),
     getClaimDocuments(claim.id),
     getClaimEvidenceRequirements(claim.id),
+    listProceduralFairnessWorkflows(claim.id),
   ]);
 
   const summary = buildExecutiveClaimSummary({ claim, documents, events });
@@ -56,12 +59,16 @@ export default async function InvestigationPage({ params }: InvestigationPagePro
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-[1500px] space-y-6 px-4 py-6 sm:px-6">
         <ClaimTabs />
         <InvestigationDashboard summary={summary} />
         <EvidenceRequirementsPanel
           claimNumber={claim.claimNumber}
           requirements={requirements}
+        />
+        <ProceduralFairnessPanel
+          claimNumber={claim.claimNumber}
+          workflows={proceduralFairnessWorkflows}
         />
       </div>
     </main>
