@@ -2,8 +2,64 @@
 
 import { revalidatePath } from "next/cache";
 
-import type { ManualFileCommunicationResult } from "@/server/communications/types";
+import type {
+  EvidenceClassificationActionResult,
+  ManualFileCommunicationResult,
+} from "@/server/communications/types";
+import { classifyIncomingEmailEvidence } from "@/server/services/email-evidence-classification-service";
+import { syncIncomingClaimsMailbox } from "@/server/services/mail-sync-service";
 import { manuallyFileIncomingEmail } from "@/server/services/manual-email-filing-service";
+
+export type SyncMailboxState =
+  | { status: "idle"; message?: undefined }
+  | { status: "success"; message: string }
+  | { status: "error"; message: string };
+
+export async function syncMailboxAction(
+  _previousState: SyncMailboxState,
+): Promise<SyncMailboxState> {
+  try {
+    const result = await syncIncomingClaimsMailbox();
+    revalidatePath("/inbox");
+    return {
+      status: "success",
+      message: `Checked ${result.found} message(s): ${result.filed} filed, ${result.needsReview} requiring review, ${result.duplicates} duplicate(s), ${result.failed} failed.`,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Mailbox sync failed.",
+    };
+  }
+}
+
+export async function classifyCommunicationEvidenceAction(
+  communicationId: string,
+  _previousState: EvidenceClassificationActionResult,
+  formData: FormData,
+): Promise<EvidenceClassificationActionResult> {
+  try {
+    await classifyIncomingEmailEvidence({
+      communicationId,
+      category: String(formData.get("category") ?? ""),
+      title: String(formData.get("title") ?? ""),
+      description: String(formData.get("description") ?? ""),
+      relevance: String(formData.get("relevance") ?? ""),
+      reviewedByName: String(formData.get("reviewedByName") ?? ""),
+      requirementId: String(formData.get("requirementId") ?? ""),
+      applyCategoryToAttachments:
+        formData.get("applyCategoryToAttachments") === "on",
+    });
+    revalidatePath("/inbox");
+    revalidatePath(`/inbox/${communicationId}`);
+    return { status: "success", message: "Evidence details saved." };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Evidence details could not be saved.",
+    };
+  }
+}
 
 export async function fileCommunicationAction(
   communicationId: string,
@@ -31,9 +87,7 @@ export async function fileCommunicationAction(
     });
 
     revalidatePath("/inbox");
-    revalidatePath(
-      `/claims/${encodeURIComponent(result.claim.claimNumber)}`,
-    );
+    revalidatePath(`/claims/${encodeURIComponent(result.claim.claimNumber)}`);
 
     const attachmentMessage =
       result.attachmentCount === 1
